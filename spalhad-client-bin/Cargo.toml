@@ -1,0 +1,11 @@
+[package]
+name = "spalhad-client-bin"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+clap = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+serde_json = { workspace = true }
+spalhad-client = { path = "../spalhad-client" }

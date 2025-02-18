@@ -1,0 +1,12 @@
+[package]
+name = "spalhad-server-bin"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+clap = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+spalhad-server = { path = "../spalhad-server" }

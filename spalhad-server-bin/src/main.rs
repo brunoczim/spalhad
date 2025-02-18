@@ -1,0 +1,53 @@
+use anyhow::Result;
+use clap::Parser;
+use spalhad_server::{http, storage, taks::TaskManager};
+use tokio::try_join;
+use tracing::Level;
+use tracing_subscriber::{
+    EnvFilter,
+    fmt,
+    layer::SubscriberExt,
+    util::SubscriberInitExt,
+};
+
+#[derive(Debug, Clone, Parser)]
+struct CliArgs {
+    #[clap(short, long, default_value = "0.0.0.0:3000")]
+    bind: String,
+    #[clap(short, long, default_value_t = 10)]
+    kv_channel_size: usize,
+}
+
+fn setup_logging() -> Result<()> {
+    let env_filter = EnvFilter::builder()
+        .with_default_directive(Level::INFO.into())
+        .with_env_var("SPALHAD_LOG_LEVEL")
+        .from_env()?;
+    let fmt = fmt::layer().with_target(false);
+    tracing_subscriber::registry().with(fmt).with(env_filter).init();
+    Ok(())
+}
+
+async fn try_main(args: CliArgs) -> Result<()> {
+    setup_logging()?;
+
+    let task_manager = TaskManager::new();
+    let kv = storage::memory::start(&task_manager, args.kv_channel_size);
+    let router = http::router(kv);
+
+    try_join!(http::serve(&args.bind, router), task_manager.wait_all())?;
+
+    Ok(())
+}
+
+#[tokio::main]
+async fn main() {
+    let args = CliArgs::parse();
+    if let Err(error) = try_main(args).await {
+        eprintln!("Fatal error");
+        for error in error.chain() {
+            eprintln!("Caused by:");
+            eprintln!("  - {error}")
+        }
+    }
+}
