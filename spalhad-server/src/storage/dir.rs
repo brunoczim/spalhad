@@ -9,17 +9,14 @@ use tokio::{
 
 use crate::taks::TaskManager;
 
-use super::{StorageHandle, StorageMessage};
+use super::StorageMessage;
 
 pub fn start(
     task_manager: &TaskManager,
-    buffer_size: usize,
-    dir_path: impl Into<PathBuf>,
-) -> StorageHandle {
-    let (sender, mut receiver) = mpsc::channel(buffer_size);
-    let handle = StorageHandle { channel: sender };
+    mut receiver: mpsc::Receiver<StorageMessage>,
+    dir_path: PathBuf,
+) {
     let cancellation_token = task_manager.cancellation_token();
-    let dir_path = dir_path.into();
 
     task_manager.spawn(async move {
         fs::create_dir_all(&dir_path).await?;
@@ -80,6 +77,4 @@ pub fn start(
             }
         }
     });
-
-    handle
 }

@@ -1,9 +1,13 @@
+use std::path::PathBuf;
+
 use anyhow::Result;
 use spalhad_spec::Key;
 use tokio::sync::{mpsc, oneshot};
 
-pub mod memory;
-pub mod dir;
+use crate::taks::TaskManager;
+
+mod memory;
+mod dir;
 
 #[derive(Debug)]
 enum StorageMessage {
@@ -12,11 +16,51 @@ enum StorageMessage {
 }
 
 #[derive(Debug, Clone)]
+pub struct StorageOptions<'a> {
+    task_manager: &'a TaskManager,
+    channel_size: usize,
+}
+
+impl<'a> StorageOptions<'a> {
+    pub fn new(task_manager: &'a TaskManager) -> Self {
+        Self { task_manager, channel_size: 10 }
+    }
+
+    pub fn set_channel_size(&mut self, size: usize) -> &mut Self {
+        self.channel_size = size;
+        self
+    }
+
+    pub fn with_channel_size(mut self, size: usize) -> Self {
+        self.set_channel_size(size);
+        self
+    }
+
+    pub fn open_memory(&self) -> StorageHandle {
+        let (handle, receiver) = StorageHandle::open(self.channel_size);
+        memory::start(self.task_manager, receiver);
+        handle
+    }
+
+    pub fn open_dir(&self, dir_path: impl Into<PathBuf>) -> StorageHandle {
+        let (handle, receiver) = StorageHandle::open(self.channel_size);
+        dir::start(self.task_manager, receiver, dir_path.into());
+        handle
+    }
+}
+
+#[derive(Debug, Clone)]
 pub struct StorageHandle {
     channel: mpsc::Sender<StorageMessage>,
 }
 
 impl StorageHandle {
+    fn open(channel_size: usize) -> (Self, mpsc::Receiver<StorageMessage>) {
+        let (sender, receiver) = mpsc::channel(channel_size);
+        let handle = Self { channel: sender };
+        (handle, receiver)
+    }
+
     pub async fn get(&self, key: Key) -> Result<Option<serde_json::Value>> {
         let (sender, receiver) = oneshot::channel();
         self.channel.send(StorageMessage::Get(key, sender)).await?;

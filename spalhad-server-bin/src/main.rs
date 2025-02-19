@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::Parser;
-use spalhad_server::{http, storage, taks::TaskManager};
+use spalhad_server::{http, storage::StorageOptions, taks::TaskManager};
 use tokio::try_join;
 use tracing::Level;
 use tracing_subscriber::{
@@ -37,15 +37,15 @@ async fn try_main(args: CliArgs) -> Result<()> {
 
     let task_manager = TaskManager::new();
 
+    let storage_options = StorageOptions::new(&task_manager)
+        .with_channel_size(args.kv_channel_size);
+
     let kv = match args.persistence_dir {
-        Some(dir_path) => {
-            storage::dir::start(&task_manager, args.kv_channel_size, dir_path)
-        },
-        None => storage::memory::start(&task_manager, args.kv_channel_size),
+        Some(dir_path) => storage_options.open_dir(dir_path),
+        None => storage_options.open_memory(),
     };
 
     let router = http::router(kv);
-
     try_join!(http::serve(&args.bind, router), task_manager.wait_all())?;
 
     Ok(())

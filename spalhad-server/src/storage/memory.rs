@@ -4,11 +4,12 @@ use tokio::{select, sync::mpsc};
 
 use crate::taks::TaskManager;
 
-use super::{StorageHandle, StorageMessage};
+use super::StorageMessage;
 
-pub fn start(task_manager: &TaskManager, buffer_size: usize) -> StorageHandle {
-    let (sender, mut receiver) = mpsc::channel(buffer_size);
-    let handle = StorageHandle { channel: sender };
+pub fn start(
+    task_manager: &TaskManager,
+    mut receiver: mpsc::Receiver<StorageMessage>,
+) {
     let cancellation_token = task_manager.cancellation_token();
     let mut map = HashMap::new();
 
@@ -35,6 +36,4 @@ pub fn start(task_manager: &TaskManager, buffer_size: usize) -> StorageHandle {
             }
         }
     });
-
-    handle
 }
