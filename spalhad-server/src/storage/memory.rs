@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use anyhow::anyhow;
 use tokio::{select, sync::mpsc};
 
 use crate::taks::TaskManager;
@@ -19,21 +18,19 @@ pub fn start(task_manager: &TaskManager, buffer_size: usize) -> StorageHandle {
                 _ = cancellation_token.cancelled() => break Ok(()),
                 message = receiver.recv() => message,
             };
-            let message = result.ok_or_else(|| {
-                anyhow!("memory database's sender disconnected")
-            })?;
+            let Some(message) = result else { break Ok(()) };
             match message {
                 StorageMessage::Get(key, callback) => {
                     let value = map.get(&key).cloned();
-                    callback
-                        .send(value)
-                        .map_err(|_| anyhow!("callback disconnected"))?;
+                    if callback.send(value).is_err() {
+                        break Ok(());
+                    }
                 },
                 StorageMessage::Put(key, value, callback) => {
                     let new = map.insert(key, value).is_none();
-                    callback
-                        .send(new)
-                        .map_err(|_| anyhow!("callback disconnected"))?;
+                    if callback.send(new).is_err() {
+                        break Ok(());
+                    }
                 },
             }
         }

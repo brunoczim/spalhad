@@ -23,15 +23,14 @@ async fn get_by_key(
     State(storage): State<StorageHandle>,
     Path(key): Path<Key>,
 ) -> HttpResult<GetResponse<serde_json::Value>> {
-    let output = storage
+    storage
         .get(key)
         .await
-        .map_err(error::make_response(StatusCode::INTERNAL_SERVER_ERROR))?;
-    match output {
-        Some(value) => Ok(Json(GetResponse { value })),
-        None => Err(anyhow!("key not found"))
-            .map_err(error::make_response(StatusCode::NOT_FOUND)),
-    }
+        .map_err(error::make_response(StatusCode::INTERNAL_SERVER_ERROR))?
+        .ok_or_else(|| anyhow!("key not found"))
+        .map_err(error::make_response(StatusCode::NOT_FOUND))
+        .map(|value| GetResponse { value })
+        .map(Json)
 }
 
 async fn put_by_key(

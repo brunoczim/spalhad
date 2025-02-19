@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow::Result;
 use clap::Parser;
 use spalhad_server::{http, storage, taks::TaskManager};
@@ -16,6 +18,8 @@ struct CliArgs {
     bind: String,
     #[clap(short, long, default_value_t = 10)]
     kv_channel_size: usize,
+    #[clap(short, long)]
+    persistence_dir: Option<PathBuf>,
 }
 
 fn setup_logging() -> Result<()> {
@@ -32,7 +36,14 @@ async fn try_main(args: CliArgs) -> Result<()> {
     setup_logging()?;
 
     let task_manager = TaskManager::new();
-    let kv = storage::memory::start(&task_manager, args.kv_channel_size);
+
+    let kv = match args.persistence_dir {
+        Some(dir_path) => {
+            storage::dir::start(&task_manager, args.kv_channel_size, dir_path)
+        },
+        None => storage::memory::start(&task_manager, args.kv_channel_size),
+    };
+
     let router = http::router(kv);
 
     try_join!(http::serve(&args.bind, router), task_manager.wait_all())?;

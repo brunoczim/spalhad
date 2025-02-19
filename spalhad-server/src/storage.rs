@@ -3,6 +3,7 @@ use spalhad_spec::Key;
 use tokio::sync::{mpsc, oneshot};
 
 pub mod memory;
+pub mod dir;
 
 #[derive(Debug)]
 enum StorageMessage {
