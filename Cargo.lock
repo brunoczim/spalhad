@@ -1370,6 +1370,7 @@ dependencies = [
  "axum",
  "serde",
  "serde_json",
+ "spalhad-client",
  "spalhad-spec",
  "tokio",
  "tokio-util",

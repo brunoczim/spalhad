@@ -1,6 +1,6 @@
 use axum::{Json, http::StatusCode};
 
-pub use spalhad_spec::Error;
+pub use spalhad_spec::kv::Error;
 
 pub type HttpResult<T, E = (StatusCode, Json<Error>)> = Result<Json<T>, E>;
 

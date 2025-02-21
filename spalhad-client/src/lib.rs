@@ -3,7 +3,7 @@ use std::hash::Hash;
 use anyhow::Result;
 use reqwest::StatusCode;
 use serde::{Serialize, de::DeserializeOwned};
-use spalhad_spec::{GetResponse, Key, PutRequest, PutResponse};
+use spalhad_spec::kv::{GetResponse, Key, PutRequest, PutResponse};
 
 #[derive(Debug, Clone)]
 pub struct Client {

@@ -14,3 +14,4 @@ tokio-util = { workspace = true }
 anyhow = { workspace = true }
 tracing = { workspace = true }
 spalhad-spec = { path = "../spalhad-spec" }
+spalhad-client = { path = "../spalhad-client" }

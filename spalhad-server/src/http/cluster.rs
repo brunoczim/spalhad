@@ -8,22 +8,22 @@ use axum::{
 };
 use spalhad_spec::kv::{GetResponse, Key, PutResponse};
 
-use super::{
-    App,
-    error::{self, HttpResult},
-};
+use crate::storage::StorageHandle;
 
-pub fn router() -> Router<App> {
+use super::error::{self, HttpResult};
+
+pub fn router(storage: StorageHandle) -> Router {
     Router::new()
         .route("/{key}", get(get_by_key))
         .route("/{key}", post(put_by_key))
+        .with_state(storage)
 }
 
 async fn get_by_key(
-    State(app): State<App>,
+    State(storage): State<StorageHandle>,
     Path(key): Path<Key>,
 ) -> HttpResult<GetResponse<serde_json::Value>> {
-    app.storage
+    storage
         .get(key)
         .await
         .map_err(error::make_response(StatusCode::INTERNAL_SERVER_ERROR))?
@@ -34,11 +34,11 @@ async fn get_by_key(
 }
 
 async fn put_by_key(
-    State(app): State<App>,
+    State(storage): State<StorageHandle>,
     Path(key): Path<Key>,
     Json(value): Json<serde_json::Value>,
 ) -> HttpResult<PutResponse> {
-    app.storage
+    storage
         .put(key, value)
         .await
         .map_err(error::make_response(StatusCode::INTERNAL_SERVER_ERROR))

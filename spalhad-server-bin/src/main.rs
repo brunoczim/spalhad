@@ -2,7 +2,11 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use clap::Parser;
-use spalhad_server::{http, storage::StorageOptions, taks::TaskManager};
+use spalhad_server::{
+    http::{self, App},
+    storage::StorageOptions,
+    taks::TaskManager,
+};
 use tokio::try_join;
 use tracing::Level;
 use tracing_subscriber::{
@@ -45,7 +49,8 @@ async fn try_main(args: CliArgs) -> Result<()> {
         None => storage_options.open_memory(),
     };
 
-    let router = http::router(kv);
+    let app = App { storage: kv };
+    let router = http::router().with_state(app);
     try_join!(http::serve(&args.bind, router), task_manager.wait_all())?;
 
     Ok(())

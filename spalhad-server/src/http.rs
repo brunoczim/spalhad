@@ -7,9 +7,15 @@ use crate::storage::StorageHandle;
 
 pub mod error;
 pub mod kv;
+pub mod cluster;
 
-pub fn router(kv_storage: StorageHandle) -> Router {
-    Router::new().nest("/kv", kv::router(kv_storage))
+#[derive(Debug, Clone)]
+pub struct App {
+    pub storage: StorageHandle,
+}
+
+pub fn router() -> Router<App> {
+    Router::new().nest("/kv", kv::router())
 }
 
 pub async fn serve(bind_address: &str, router: Router) -> Result<()> {

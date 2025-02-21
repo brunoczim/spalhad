@@ -1,13 +1,14 @@
 use std::path::PathBuf;
 
 use anyhow::Result;
-use spalhad_spec::Key;
+use spalhad_spec::kv::Key;
 use tokio::sync::{mpsc, oneshot};
 
 use crate::taks::TaskManager;
 
 mod memory;
 mod dir;
+mod client;
 
 #[derive(Debug)]
 enum StorageMessage {
@@ -45,6 +46,12 @@ impl<'a> StorageOptions<'a> {
     pub fn open_dir(&self, dir_path: impl Into<PathBuf>) -> StorageHandle {
         let (handle, receiver) = StorageHandle::open(self.channel_size);
         dir::start(self.task_manager, receiver, dir_path.into());
+        handle
+    }
+
+    pub fn open_client(&self, base_url: impl Into<String>) -> StorageHandle {
+        let (handle, receiver) = StorageHandle::open(self.channel_size);
+        client::start(self.task_manager, receiver, base_url.into());
         handle
     }
 }
