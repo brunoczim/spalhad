@@ -78,16 +78,16 @@ impl Key {
             let mut carry = 0;
             for byte in &mut *remainder {
                 let new_byte = (*byte << 1) | carry;
-                carry = *byte & 1;
+                carry = *byte >> 7;
                 *byte = new_byte;
             }
             let mut carry = 0;
             for byte in &mut *quotient {
                 let new_byte = (*byte << 1) | carry;
-                carry = *byte & 1;
+                carry = *byte >> 7;
                 *byte = new_byte;
             }
-            remainder[0] |= self.bytes[i / 8] >> (i % 8);
+            remainder[0] |= (self.bytes[i / 8] >> (i % 8)) & 1;
             if (*remainder).into_iter().rev().ge((*divisor).into_iter().rev()) {
                 quotient[0] |= 1;
                 let mut borrow = 0;
@@ -147,20 +147,20 @@ impl<'de> Deserialize<'de> for Key {
                             Ok(Key::from_bytes(bytes))
                         };
                     };
-                    let Some(low) = chars.next() else {
-                        Err(E::custom(
-                            "expected at least low hexadecimal digit",
-                        ))?
-                    };
                     let Some(high) = chars.next() else {
                         Err(E::custom(
                             "expected at least high hexadecimal digit",
                         ))?
                     };
-                    let Some(low) = low.to_digit(16) else {
-                        Err(E::custom("invalid hexadecimal digit"))?
+                    let Some(low) = chars.next() else {
+                        Err(E::custom(
+                            "expected at least low hexadecimal digit",
+                        ))?
                     };
                     let Some(high) = high.to_digit(16) else {
+                        Err(E::custom("invalid hexadecimal digit"))?
+                    };
+                    let Some(low) = low.to_digit(16) else {
                         Err(E::custom("invalid hexadecimal digit"))?
                     };
                     *byte = (low | (high << 4)) as u8;

@@ -42,6 +42,8 @@ impl Multiplexer {
         index_bytes[..].copy_from_slice(&remainder[.. INDEX_SIZE]);
         let index = usize::from_le_bytes(index_bytes);
 
+        tracing::trace!("multiplexing to storage {index}");
+
         &self.nodes[index]
     }
 }

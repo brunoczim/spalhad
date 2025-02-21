@@ -1,0 +1,8 @@
+{
+  "addresses": [
+    "http://localhost:3230/kv",
+    "http://localhost:3231/kv",
+    "http://localhost:3232/kv",
+    "http://localhost:3233/kv"
+  ]
+}

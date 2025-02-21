@@ -6,7 +6,7 @@ use axum::{
     http::StatusCode,
     routing::{get, post},
 };
-use spalhad_spec::kv::{GetResponse, Key, PutResponse};
+use spalhad_spec::kv::{GetResponse, Key, PutRequest, PutResponse};
 
 use super::{
     App,
@@ -23,7 +23,7 @@ async fn get_by_key(
     State(app): State<App>,
     Path(key): Path<Key>,
 ) -> HttpResult<GetResponse<serde_json::Value>> {
-    app.storage
+    app.mux()
         .get(key)
         .await
         .map_err(error::make_response(StatusCode::INTERNAL_SERVER_ERROR))?
@@ -36,10 +36,10 @@ async fn get_by_key(
 async fn put_by_key(
     State(app): State<App>,
     Path(key): Path<Key>,
-    Json(value): Json<serde_json::Value>,
+    Json(body): Json<PutRequest<serde_json::Value>>,
 ) -> HttpResult<PutResponse> {
-    app.storage
-        .put(key, value)
+    app.mux()
+        .put(key, body.value)
         .await
         .map_err(error::make_response(StatusCode::INTERNAL_SERVER_ERROR))
         .map(|new| PutResponse { new })

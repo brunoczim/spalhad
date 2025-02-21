@@ -3,16 +3,13 @@ use axum::Router;
 use tokio::net::TcpListener;
 use tower_http::trace::TraceLayer;
 
-use crate::storage::StorageHandle;
+pub use app::App;
 
-pub mod error;
+mod error;
+mod app;
+
+pub mod sync;
 pub mod kv;
-pub mod cluster;
-
-#[derive(Debug, Clone)]
-pub struct App {
-    pub storage: StorageHandle,
-}
 
 pub fn router() -> Router<App> {
     Router::new().nest("/kv", kv::router())
