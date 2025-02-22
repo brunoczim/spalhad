@@ -1,3 +1,5 @@
+use std::backtrace::BacktraceStatus;
+
 use anyhow::{Result, bail};
 use clap::{Parser, Subcommand};
 use spalhad_client::Client;
@@ -57,7 +59,9 @@ async fn main() {
             eprintln!("Caused by:");
             eprintln!("  - {error}")
         }
-        eprintln!("Backtrace:");
-        eprintln!("{}", error.backtrace());
+        if error.backtrace().status() == BacktraceStatus::Captured {
+            eprintln!("Backtrace:");
+            eprintln!("{}", error.backtrace());
+        }
     }
 }

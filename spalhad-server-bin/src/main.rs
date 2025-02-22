@@ -1,4 +1,4 @@
-use std::{iter, path::PathBuf};
+use std::{backtrace::BacktraceStatus, iter, path::PathBuf};
 
 use anyhow::{Result, bail};
 use clap::Parser;
@@ -96,6 +96,11 @@ async fn main() {
         for error in error.chain() {
             eprintln!("Caused by:");
             eprintln!("  - {error}")
+        }
+
+        if error.backtrace().status() == BacktraceStatus::Captured {
+            eprintln!("Backtrace:");
+            eprintln!("{}", error.backtrace());
         }
     }
 }
