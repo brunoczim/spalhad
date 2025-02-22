@@ -6,6 +6,7 @@ use spalhad_server::{
     http::{self, App},
     mux::Multiplexer,
     storage::StorageOptions,
+    sync,
     taks::TaskManager,
 };
 use spalhad_spec::cluster::ClusterConfig;
@@ -81,10 +82,20 @@ async fn try_main(args: CliArgs) -> Result<()> {
             },
         ));
 
-    let app = App::new(Multiplexer::new(nodes));
-    let router = http::router().with_state(app);
-    try_join!(http::serve(&args.bind, router), task_manager.wait_all())?;
+    let app = App::new(Multiplexer::new(nodes))?;
 
+    let self_run_id = app.self_run_id();
+    let self_base_url = cluster_config.addresses[args.self_id].clone();
+
+    let router = http::router().with_state(app);
+    let bind_address = args.bind;
+    task_manager.spawn(async move { http::serve(&bind_address, router).await });
+
+    task_manager.spawn(async move {
+        sync::check_self_address(self_run_id, &self_base_url).await
+    });
+
+    task_manager.wait_all().await?;
     Ok(())
 }
 

@@ -8,11 +8,11 @@ pub use app::App;
 mod error;
 mod app;
 
-pub mod sync;
 pub mod kv;
+pub mod sync;
 
 pub fn router() -> Router<App> {
-    Router::new().nest("/kv", kv::router())
+    Router::new().nest("/kv", kv::router()).nest("/sync", sync::router())
 }
 
 pub async fn serve(bind_address: &str, router: Router) -> Result<()> {

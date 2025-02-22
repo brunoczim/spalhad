@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 pub use key::Key;
 
-mod key;
+pub mod key;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Error {

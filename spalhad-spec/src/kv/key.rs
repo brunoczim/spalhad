@@ -1,10 +1,18 @@
 use std::{
     fmt,
     hash::{BuildHasher, Hash, Hasher},
+    str::FromStr,
 };
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Visitor};
 use sha3::{Digest, Sha3_256};
+use thiserror::Error;
+
+use crate::hex;
+
+#[derive(Debug, Error)]
+#[error("string is not a valid hexadecimal key")]
+pub struct ParseKeyError;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Key {
@@ -106,10 +114,20 @@ impl Key {
 
 impl fmt::Display for Key {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for byte in &self.bytes {
-            write!(f, "{:02x}", byte)?;
+        hex::render(&self.bytes, f)
+    }
+}
+
+impl FromStr for Key {
+    type Err = ParseKeyError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut bytes = [0; Self::SIZE];
+        if hex::parse(s, &mut bytes) {
+            Ok(Self { bytes })
+        } else {
+            Err(ParseKeyError)
         }
-        Ok(())
     }
 }
 
@@ -136,35 +154,7 @@ impl<'de> Deserialize<'de> for Key {
             where
                 E: serde::de::Error,
             {
-                let mut bytes = [0; Key::SIZE];
-                let mut byte_iter = bytes.iter_mut();
-                let mut chars = v.chars();
-                loop {
-                    let Some(byte) = byte_iter.next() else {
-                        return if chars.next().is_some() {
-                            Err(E::custom("too many characters"))
-                        } else {
-                            Ok(Key::from_bytes(bytes))
-                        };
-                    };
-                    let Some(high) = chars.next() else {
-                        Err(E::custom(
-                            "expected at least high hexadecimal digit",
-                        ))?
-                    };
-                    let Some(low) = chars.next() else {
-                        Err(E::custom(
-                            "expected at least low hexadecimal digit",
-                        ))?
-                    };
-                    let Some(high) = high.to_digit(16) else {
-                        Err(E::custom("invalid hexadecimal digit"))?
-                    };
-                    let Some(low) = low.to_digit(16) else {
-                        Err(E::custom("invalid hexadecimal digit"))?
-                    };
-                    *byte = (low | (high << 4)) as u8;
-                }
+                v.parse().map_err(E::custom)
             }
 
             fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {

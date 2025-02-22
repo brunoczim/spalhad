@@ -1,14 +1,22 @@
-use std::hash::Hash;
+use std::{hash::Hash, sync::Arc};
 
 use anyhow::{Result, bail};
 use reqwest::StatusCode;
 use serde::{Serialize, de::DeserializeOwned};
-use spalhad_spec::kv::{GetResponse, Key, PutRequest, PutResponse};
+use spalhad_spec::{
+    cluster::{RunId, RunIdResponse},
+    kv::{GetResponse, Key, PutRequest, PutResponse},
+};
+
+#[derive(Debug)]
+struct Inner {
+    base_url: Box<str>,
+    http_impl: reqwest::Client,
+}
 
 #[derive(Debug, Clone)]
 pub struct Client {
-    base_url: String,
-    inner: reqwest::Client,
+    inner: Arc<Inner>,
 }
 
 impl Default for Client {
@@ -18,8 +26,36 @@ impl Default for Client {
 }
 
 impl Client {
-    pub fn new(base_url: impl Into<String>) -> Self {
-        Self { inner: reqwest::Client::new(), base_url: base_url.into() }
+    pub fn new(base_url: impl AsRef<str>) -> Self {
+        Self {
+            inner: Arc::new(Inner {
+                base_url: Box::from(base_url.as_ref()),
+                http_impl: reqwest::Client::new(),
+            }),
+        }
+    }
+
+    pub fn base_url(&self) -> &str {
+        &self.inner.base_url
+    }
+
+    fn http_impl(&self) -> &reqwest::Client {
+        &self.inner.http_impl
+    }
+
+    pub async fn run_id(&self) -> Result<RunId> {
+        let url = format!("{}/sync/run_id", self.base_url());
+        let request = self.http_impl().get(url).build()?;
+        let response = self.http_impl().execute(request).await?;
+        if response.status() != StatusCode::OK {
+            bail!(
+                "Request failed with status {}, body {}",
+                response.status(),
+                response.text().await?,
+            )
+        }
+        let run_id_response: RunIdResponse = response.json().await?;
+        Ok(run_id_response.run_id)
     }
 
     pub async fn get<K, V>(&self, key_data: K) -> Result<Option<V>>
@@ -42,9 +78,9 @@ impl Client {
     where
         V: DeserializeOwned,
     {
-        let url = format!("{}/{}", self.base_url, key);
-        let request = self.inner.get(url).build()?;
-        let response = self.inner.execute(request).await?;
+        let url = format!("{}/kv/{}", self.base_url(), key);
+        let request = self.http_impl().get(url).build()?;
+        let response = self.http_impl().execute(request).await?;
         if response.status() == StatusCode::NOT_FOUND {
             Ok(None)
         } else if response.status() != StatusCode::OK {
@@ -63,10 +99,10 @@ impl Client {
     where
         V: Serialize,
     {
-        let url = format!("{}/{}", self.base_url, key);
+        let url = format!("{}/kv/{}", self.base_url(), key);
         let body = PutRequest { value };
-        let request = self.inner.post(url).json(&body).build()?;
-        let response = self.inner.execute(request).await?;
+        let request = self.http_impl().post(url).json(&body).build()?;
+        let response = self.http_impl().execute(request).await?;
         if response.status() != StatusCode::OK {
             bail!(
                 "Request failed with status {}, body {}",

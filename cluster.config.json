@@ -1,8 +1,8 @@
 {
   "addresses": [
-    "http://spalhad-node-0:5000/kv",
-    "http://spalhad-node-1:5000/kv",
-    "http://spalhad-node-2:5000/kv",
-    "http://spalhad-node-3:5000/kv"
+    "http://spalhad-node-0:5000",
+    "http://spalhad-node-1:5000",
+    "http://spalhad-node-2:5000",
+    "http://spalhad-node-3:5000"
   ]
 }

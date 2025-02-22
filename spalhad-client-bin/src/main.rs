@@ -6,7 +6,7 @@ use spalhad_client::Client;
 
 #[derive(Debug, Clone, Parser)]
 struct CliArgs {
-    #[clap(short, long, default_value = "http://localhost:5500/kv")]
+    #[clap(short, long, default_value = "http://localhost:5500")]
     base_url: String,
     #[clap(subcommand)]
     cmd: Cmd,
@@ -24,6 +24,7 @@ enum Cmd {
         #[clap(short, long)]
         value: String,
     },
+    RunId,
 }
 
 async fn try_main(args: CliArgs) -> Result<()> {
@@ -32,7 +33,7 @@ async fn try_main(args: CliArgs) -> Result<()> {
         Cmd::Get { key } => match client.get(key).await? {
             Some(value) => {
                 let value: serde_json::Value = value;
-                eprintln!("{}", serde_json::to_string_pretty(&value)?)
+                println!("{}", serde_json::to_string_pretty(&value)?)
             },
             None => {
                 bail!("Not found")
@@ -41,10 +42,14 @@ async fn try_main(args: CliArgs) -> Result<()> {
         Cmd::Put { key, value } => {
             let value: serde_json::Value = serde_json::from_str(&value)?;
             if client.put(key, value).await? {
-                eprintln!("Inserted new entry");
+                println!("Inserted new entry");
             } else {
-                eprintln!("Updated");
+                println!("Updated");
             }
+        },
+        Cmd::RunId => {
+            let run_id = client.run_id().await?;
+            println!("{}", run_id);
         },
     }
     Ok(())
