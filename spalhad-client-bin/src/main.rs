@@ -4,7 +4,7 @@ use spalhad_client::Client;
 
 #[derive(Debug, Clone, Parser)]
 struct CliArgs {
-    #[clap(short, long, default_value = "http://localhost:3000/kv")]
+    #[clap(short, long, default_value = "http://localhost:5500/kv")]
     base_url: String,
     #[clap(subcommand)]
     cmd: Cmd,
@@ -57,5 +57,7 @@ async fn main() {
             eprintln!("Caused by:");
             eprintln!("  - {error}")
         }
+        eprintln!("Backtrace:");
+        eprintln!("{}", error.backtrace());
     }
 }

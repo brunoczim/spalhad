@@ -1,6 +1,6 @@
 use std::hash::Hash;
 
-use anyhow::Result;
+use anyhow::{Result, bail};
 use reqwest::StatusCode;
 use serde::{Serialize, de::DeserializeOwned};
 use spalhad_spec::kv::{GetResponse, Key, PutRequest, PutResponse};
@@ -47,6 +47,12 @@ impl Client {
         let response = self.inner.execute(request).await?;
         if response.status() == StatusCode::NOT_FOUND {
             Ok(None)
+        } else if response.status() != StatusCode::OK {
+            bail!(
+                "Request failed with status {}, body {}",
+                response.status(),
+                response.text().await?,
+            )
         } else {
             let get_response: GetResponse<V> = response.json().await?;
             Ok(Some(get_response.value))
@@ -61,6 +67,13 @@ impl Client {
         let body = PutRequest { value };
         let request = self.inner.post(url).json(&body).build()?;
         let response = self.inner.execute(request).await?;
+        if response.status() != StatusCode::OK {
+            bail!(
+                "Request failed with status {}, body {}",
+                response.status(),
+                response.text().await?,
+            )
+        }
         let put_response: PutResponse = response.json().await?;
         Ok(put_response.new)
     }

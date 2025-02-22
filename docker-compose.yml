@@ -1,0 +1,39 @@
+services:
+  spalhad-node-0: &spalhad-node
+    image: local/spalhad/server:latest
+    pull_policy: never
+    environment: &spalhad-node-env
+      SPALHAD_KV_DIR: true
+      SPALHAD_SELF_ID: 0
+      SPALHAD_LOG_LEVEL: trace
+    volumes:
+      - ./cluster.config.json:/spalhad/cluster.config.json
+    ports:
+      - "5500:5000"
+
+  spalhad-node-1:
+    <<: *spalhad-node
+    environment:
+      SPALHAD_KV_DIR: true
+      SPALHAD_SELF_ID: 1
+      SPALHAD_LOG_LEVEL: trace
+    ports:
+      - "5501:5000"
+
+  spalhad-node-2:
+    <<: *spalhad-node
+    environment:
+      SPALHAD_KV_DIR: true
+      SPALHAD_SELF_ID: 2
+      SPALHAD_LOG_LEVEL: trace
+    ports:
+      - "5502:5000"
+
+  spalhad-node-3:
+    <<: *spalhad-node
+    environment:
+      SPALHAD_KV_DIR: true
+      SPALHAD_SELF_ID: 3
+      SPALHAD_LOG_LEVEL: trace
+    ports:
+      - "5503:5000"

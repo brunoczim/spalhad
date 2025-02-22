@@ -20,7 +20,7 @@ use tracing_subscriber::{
 
 #[derive(Debug, Clone, Parser)]
 struct CliArgs {
-    #[clap(short, long, default_value = "0.0.0.0:3000")]
+    #[clap(short, long, default_value = "0.0.0.0:5500")]
     bind: String,
     #[clap(short, long, default_value_t = 10)]
     kv_channel_size: usize,
@@ -62,6 +62,8 @@ async fn try_main(args: CliArgs) -> Result<()> {
     if args.self_id >= cluster_config.addresses.len() {
         bail!("self-id is too big")
     }
+
+    tracing::info!("self-id is {}", args.self_id);
 
     let nodes = cluster_config.addresses[.. args.self_id]
         .iter()

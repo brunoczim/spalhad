@@ -1,8 +1,8 @@
 {
   "addresses": [
-    "http://localhost:3230/kv",
-    "http://localhost:3231/kv",
-    "http://localhost:3232/kv",
-    "http://localhost:3233/kv"
+    "http://spalhad-node-0:5000/kv",
+    "http://spalhad-node-1:5000/kv",
+    "http://spalhad-node-2:5000/kv",
+    "http://spalhad-node-3:5000/kv"
   ]
 }
