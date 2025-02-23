@@ -10,7 +10,7 @@ use spalhad_server::{
     taks::TaskManager,
 };
 use spalhad_spec::cluster::ClusterConfig;
-use tokio::{fs, try_join};
+use tokio::fs;
 use tracing::Level;
 use tracing_subscriber::{
     EnvFilter,
