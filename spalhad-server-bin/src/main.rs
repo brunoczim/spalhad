@@ -3,9 +3,8 @@ use std::{backtrace::BacktraceStatus, iter, path::PathBuf};
 use anyhow::{Result, bail};
 use clap::Parser;
 use spalhad_server::{
+    actor::storage::StorageOptions,
     http::{self, App},
-    mux::Multiplexer,
-    storage::StorageOptions,
     sync,
     taks::TaskManager,
 };
@@ -82,7 +81,7 @@ async fn try_main(args: CliArgs) -> Result<()> {
             },
         ));
 
-    let app = App::new(Multiplexer::new(nodes))?;
+    let app = App::new(storage_options.open_switch(nodes))?;
 
     let self_run_id = app.self_run_id();
     let self_base_url = cluster_config.addresses[args.self_id].clone();

@@ -1,21 +1,21 @@
 use anyhow::Result;
 use spalhad_spec::cluster::RunId;
 
-use crate::mux::Multiplexer;
+use crate::actor::storage::StorageHandle;
 
 #[derive(Debug, Clone)]
 pub struct App {
-    mux: Multiplexer,
+    storage: StorageHandle,
     run_id: RunId,
 }
 
 impl App {
-    pub fn new(mux: Multiplexer) -> Result<Self> {
-        Ok(Self { mux, run_id: RunId::generate()? })
+    pub fn new(storage: StorageHandle) -> Result<Self> {
+        Ok(Self { storage, run_id: RunId::generate()? })
     }
 
-    pub fn mux(&self) -> &Multiplexer {
-        &self.mux
+    pub fn storage(&self) -> &StorageHandle {
+        &self.storage
     }
 
     pub fn self_run_id(&self) -> RunId {
