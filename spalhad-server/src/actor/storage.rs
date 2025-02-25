@@ -12,7 +12,7 @@ use crate::{
 mod memory;
 mod dir;
 mod client;
-mod switch;
+mod cluster;
 
 pub type StorageHandle = ActorHandle<StorageCall>;
 
@@ -75,12 +75,12 @@ impl<'a> StorageOptions<'a> {
         handle
     }
 
-    pub fn open_switch(
+    pub fn open_cluster(
         &self,
         nodes: impl IntoIterator<Item = StorageHandle>,
     ) -> StorageHandle {
         let (handle, inbox) = actor::core::channel(self.channel_size);
-        switch::start(self.task_manager, inbox, nodes.into_iter().collect());
+        cluster::start(self.task_manager, inbox, nodes.into_iter().collect());
         handle
     }
 }
