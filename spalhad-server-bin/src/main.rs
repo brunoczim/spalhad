@@ -68,21 +68,15 @@ async fn try_main(args: CliArgs) -> Result<()> {
 
     tracing::info!("self-id is {}", args.self_id);
 
-    let nodes = cluster_config.addresses[.. args.self_id]
-        .iter()
-        .map(|base_url| {
-            ActorOptions::new(&task_manager)
-                .with_channel_size(args.kv_channel_size)
-                .spawn(ClientStorage::open(base_url))
-        })
+    let clients_low = cluster_config.addresses[.. args.self_id].iter();
+    let clients_high = cluster_config.addresses[args.self_id + 1 ..].iter();
+    let spawn_client =
+        |base_url| storage_options.spawn(ClientStorage::open(base_url));
+
+    let nodes = clients_low
+        .map(spawn_client)
         .chain(iter::once(self_kv))
-        .chain(cluster_config.addresses[args.self_id + 1 ..].iter().map(
-            |base_url| {
-                ActorOptions::new(&task_manager)
-                    .with_channel_size(args.kv_channel_size)
-                    .spawn(ClientStorage::open(base_url))
-            },
-        ));
+        .chain(clients_high.map(spawn_client));
 
     let cluster_kv = storage_options.spawn(ClusterStorage::open(nodes));
     let app = App::new(cluster_kv)?;
