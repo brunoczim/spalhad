@@ -84,7 +84,7 @@ impl Actor for DirStorage {
                                 .open(&path)
                                 .await
                             {
-                                Ok(file) => break (file, true),
+                                Ok(file) => break (file, false),
                                 Err(e)
                                     if e.kind() != io::ErrorKind::NotFound =>
                                 {
