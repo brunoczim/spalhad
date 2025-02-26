@@ -1,34 +1,46 @@
 use std::path::PathBuf;
 
+use anyhow::Result;
 use tokio::{
     fs,
     io::{self, AsyncWriteExt},
     select,
 };
+use tokio_util::sync::CancellationToken;
 
-use crate::taks::TaskManager;
+use crate::actor::core::{Actor, ActorInbox};
 
-use super::{StorageCall, StorageInbox};
+use super::StorageCall;
 
-pub fn start(
-    task_manager: &TaskManager,
-    mut inbox: StorageInbox,
+#[derive(Debug, Clone)]
+pub struct DirStorage {
     dir_path: PathBuf,
-) {
-    let cancellation_token = task_manager.cancellation_token();
+}
 
-    task_manager.spawn(async move {
-        let dir_path = &dir_path;
-        fs::create_dir_all(dir_path).await?;
+impl DirStorage {
+    pub fn open(dir_path: impl Into<PathBuf>) -> Self {
+        Self { dir_path: dir_path.into() }
+    }
+}
+
+impl Actor for DirStorage {
+    type Call = StorageCall;
+
+    async fn start(
+        self,
+        mut inbox: ActorInbox<Self::Call>,
+        cancellation_token: CancellationToken,
+    ) -> Result<()> {
+        let dir_path = &self.dir_path;
 
         loop {
             let result = select! {
                 _ = cancellation_token.cancelled() => break Ok(()),
                 message = inbox.recv() => message,
             };
-            let Some(message) = result else { break Ok(()) };
+            let Some(call) = result else { break Ok(()) };
 
-            match message {
+            match call {
                 StorageCall::Get(call) => {
                     call.handle(|input| async move {
                         let path = dir_path.join(format!("{}.json", input.key));
@@ -88,5 +100,5 @@ pub fn start(
                 },
             }
         }
-    });
+    }
 }

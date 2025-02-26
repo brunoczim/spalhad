@@ -1,40 +1,53 @@
+use anyhow::Result;
 use spalhad_client::Client;
 use tokio::select;
+use tokio_util::sync::CancellationToken;
 
-use crate::taks::TaskManager;
+use crate::actor::core::{Actor, ActorInbox};
 
-use super::{StorageCall, StorageInbox};
+use super::StorageCall;
 
-pub fn start(
-    task_manager: &TaskManager,
-    mut inbox: StorageInbox,
-    base_url: String,
-) {
-    let cancellation_token = task_manager.cancellation_token();
-    let client = Client::new(base_url);
+#[derive(Debug, Clone)]
+pub struct ClientStorage {
+    client: Client,
+}
 
-    task_manager.spawn(async move {
+impl ClientStorage {
+    pub fn open(base_url: impl Into<String>) -> Self {
+        Self { client: Client::new(base_url.into()) }
+    }
+}
+
+impl Actor for ClientStorage {
+    type Call = StorageCall;
+
+    async fn start(
+        self,
+        mut inbox: ActorInbox<Self::Call>,
+        cancellation_token: CancellationToken,
+    ) -> Result<()> {
         loop {
             let result = select! {
                 _ = cancellation_token.cancelled() => break Ok(()),
                 message = inbox.recv() => message,
             };
-            let Some(message) = result else { break Ok(()) };
+            let Some(call) = result else { break Ok(()) };
 
-            match message {
+            match call {
                 StorageCall::Get(call) => {
                     call.handle(|input| async {
-                        client.get_raw(input.key).await
+                        self.client.get_raw(input.key).await
                     })
                     .await;
                 },
+
                 StorageCall::Put(call) => {
                     call.handle(|input| async {
-                        client.put_raw(input.key, input.value).await
+                        self.client.put_raw(input.key, input.value).await
                     })
                     .await;
                 },
             }
         }
-    });
+    }
 }

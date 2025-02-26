@@ -3,7 +3,10 @@ use std::{backtrace::BacktraceStatus, iter, path::PathBuf};
 use anyhow::{Result, bail};
 use clap::Parser;
 use spalhad_server::{
-    actor::storage::StorageOptions,
+    actor::{
+        core::ActorOptions,
+        storage::{ClientStorage, ClusterStorage, DirStorage, MemoryStorage},
+    },
     http::{self, App},
     sync,
     taks::TaskManager,
@@ -47,12 +50,12 @@ async fn try_main(args: CliArgs) -> Result<()> {
 
     let task_manager = TaskManager::new();
 
-    let storage_options = StorageOptions::new(&task_manager)
+    let storage_options = ActorOptions::new(&task_manager)
         .with_channel_size(args.kv_channel_size);
 
     let self_kv = match args.persistence_dir {
-        Some(dir_path) => storage_options.open_dir(dir_path),
-        None => storage_options.open_memory(),
+        Some(dir_path) => storage_options.spawn(DirStorage::open(dir_path)),
+        None => storage_options.spawn(MemoryStorage::open()),
     };
 
     let cluster_config_contents = fs::read(&args.cluster_config).await?;
@@ -68,20 +71,21 @@ async fn try_main(args: CliArgs) -> Result<()> {
     let nodes = cluster_config.addresses[.. args.self_id]
         .iter()
         .map(|base_url| {
-            StorageOptions::new(&task_manager)
+            ActorOptions::new(&task_manager)
                 .with_channel_size(args.kv_channel_size)
-                .open_client(base_url)
+                .spawn(ClientStorage::open(base_url))
         })
         .chain(iter::once(self_kv))
         .chain(cluster_config.addresses[args.self_id + 1 ..].iter().map(
             |base_url| {
-                StorageOptions::new(&task_manager)
+                ActorOptions::new(&task_manager)
                     .with_channel_size(args.kv_channel_size)
-                    .open_client(base_url)
+                    .spawn(ClientStorage::open(base_url))
             },
         ));
 
-    let app = App::new(storage_options.open_cluster(nodes))?;
+    let cluster_kv = storage_options.spawn(ClusterStorage::open(nodes));
+    let app = App::new(cluster_kv)?;
 
     let self_run_id = app.self_run_id();
     let self_base_url = cluster_config.addresses[args.self_id].clone();

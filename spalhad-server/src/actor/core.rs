@@ -1,11 +1,54 @@
 use anyhow::{Result, bail};
 use tokio::sync::{mpsc, oneshot};
+use tokio_util::sync::CancellationToken;
 
-pub fn channel<M>(buf_size: usize) -> (ActorHandle<M>, ActorInbox<M>) {
-    let (sender_inner, receiver_inner) = mpsc::channel(buf_size);
-    let sender = ActorHandle { inner: sender_inner };
-    let receiver = ActorInbox { inner: receiver_inner };
-    (sender, receiver)
+use crate::taks::TaskManager;
+
+#[trait_variant::make(Send)]
+pub trait Actor {
+    type Call;
+
+    async fn start(
+        self,
+        inbox: ActorInbox<Self::Call>,
+        cancellation_token: CancellationToken,
+    ) -> Result<()>;
+}
+
+#[derive(Debug, Clone)]
+pub struct ActorOptions<'a> {
+    task_manager: &'a TaskManager,
+    channel_size: usize,
+}
+
+impl<'a> ActorOptions<'a> {
+    pub fn new(task_manager: &'a TaskManager) -> Self {
+        Self { task_manager, channel_size: 10 }
+    }
+
+    pub fn set_channel_size(&mut self, size: usize) -> &mut Self {
+        self.channel_size = size;
+        self
+    }
+
+    pub fn with_channel_size(mut self, size: usize) -> Self {
+        self.set_channel_size(size);
+        self
+    }
+
+    pub fn spawn<A>(&self, actor: A) -> ActorHandle<A::Call>
+    where
+        A: Actor + Send + 'static,
+        A::Call: Send + 'static,
+    {
+        let (sender, receiver) = mpsc::channel(self.channel_size);
+        let handle = ActorHandle { inner: sender };
+        let inbox = ActorInbox { inner: receiver };
+        let cancellation_token = self.task_manager.cancellation_token();
+        let task = async move { actor.start(inbox, cancellation_token).await };
+        self.task_manager.spawn(task);
+        handle
+    }
 }
 
 #[derive(Debug)]
