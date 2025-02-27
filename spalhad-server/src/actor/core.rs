@@ -1,5 +1,8 @@
 use anyhow::{Result, bail};
-use tokio::sync::{mpsc, oneshot};
+use tokio::{
+    select,
+    sync::{mpsc, oneshot},
+};
 use tokio_util::sync::CancellationToken;
 
 use crate::taks::TaskManager;
@@ -13,6 +16,36 @@ pub trait Actor {
         inbox: ActorInbox<Self::Call>,
         cancellation_token: CancellationToken,
     ) -> Result<()>;
+}
+
+#[trait_variant::make(Send)]
+pub trait ReactiveActor {
+    type ReactiveCall;
+
+    async fn on_call(&mut self, call: Self::ReactiveCall) -> Result<()>;
+}
+
+impl<T> Actor for T
+where
+    T: ReactiveActor,
+    T::ReactiveCall: Send,
+{
+    type Call = T::ReactiveCall;
+
+    async fn start(
+        mut self,
+        mut inbox: ActorInbox<Self::Call>,
+        cancellation_token: CancellationToken,
+    ) -> Result<()> {
+        loop {
+            let result = select! {
+                _ = cancellation_token.cancelled() => break Ok(()),
+                message = inbox.recv() => message,
+            };
+            let Some(call) = result else { break Ok(()) };
+            self.on_call(call).await?;
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

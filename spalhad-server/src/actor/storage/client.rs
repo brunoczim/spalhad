@@ -1,9 +1,7 @@
 use anyhow::Result;
 use spalhad_client::Client;
-use tokio::select;
-use tokio_util::sync::CancellationToken;
 
-use crate::actor::core::{Actor, ActorInbox};
+use crate::actor::core::ReactiveActor;
 
 use super::StorageCall;
 
@@ -18,36 +16,26 @@ impl ClientStorage {
     }
 }
 
-impl Actor for ClientStorage {
-    type Call = StorageCall;
+impl ReactiveActor for ClientStorage {
+    type ReactiveCall = StorageCall;
 
-    async fn start(
-        self,
-        mut inbox: ActorInbox<Self::Call>,
-        cancellation_token: CancellationToken,
-    ) -> Result<()> {
-        loop {
-            let result = select! {
-                _ = cancellation_token.cancelled() => break Ok(()),
-                message = inbox.recv() => message,
-            };
-            let Some(call) = result else { break Ok(()) };
+    async fn on_call(&mut self, call: Self::ReactiveCall) -> Result<()> {
+        match call {
+            StorageCall::Get(call) => {
+                call.handle(|input| async {
+                    self.client.get_raw(input.key).await
+                })
+                .await;
+            },
 
-            match call {
-                StorageCall::Get(call) => {
-                    call.handle(|input| async {
-                        self.client.get_raw(input.key).await
-                    })
-                    .await;
-                },
-
-                StorageCall::Put(call) => {
-                    call.handle(|input| async {
-                        self.client.put_raw(input.key, input.value).await
-                    })
-                    .await;
-                },
-            }
+            StorageCall::Put(call) => {
+                call.handle(|input| async {
+                    self.client.put_raw(input.key, input.value).await
+                })
+                .await;
+            },
         }
+
+        Ok(())
     }
 }

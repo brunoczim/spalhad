@@ -1,9 +1,7 @@
 use anyhow::Result;
 use spalhad_spec::kv::Key;
-use tokio::select;
-use tokio_util::sync::CancellationToken;
 
-use crate::actor::core::{Actor, ActorInbox};
+use crate::actor::core::ReactiveActor;
 
 use super::{StorageCall, StorageHandle};
 
@@ -36,29 +34,20 @@ impl ClusterStorage {
     }
 }
 
-impl Actor for ClusterStorage {
-    type Call = StorageCall;
+impl ReactiveActor for ClusterStorage {
+    type ReactiveCall = StorageCall;
 
-    async fn start(
-        self,
-        mut inbox: ActorInbox<Self::Call>,
-        cancellation_token: CancellationToken,
-    ) -> Result<()> {
-        loop {
-            let result = select! {
-                _ = cancellation_token.cancelled() => break Ok(()),
-                message = inbox.recv() => message,
-            };
-            let Some(call) = result else { break Ok(()) };
+    async fn on_call(&mut self, call: Self::ReactiveCall) -> Result<()> {
+        match call {
+            StorageCall::Get(call) => {
+                self.select(&call.input().key).forward(call).await?;
+            },
 
-            match call {
-                StorageCall::Get(call) => {
-                    self.select(&call.input().key).forward(call).await?;
-                },
-                StorageCall::Put(call) => {
-                    self.select(&call.input().key).forward(call).await?;
-                },
-            }
+            StorageCall::Put(call) => {
+                self.select(&call.input().key).forward(call).await?;
+            },
         }
+
+        Ok(())
     }
 }

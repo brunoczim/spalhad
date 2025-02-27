@@ -2,10 +2,8 @@ use std::collections::HashMap;
 
 use anyhow::Result;
 use spalhad_spec::kv::Key;
-use tokio::select;
-use tokio_util::sync::CancellationToken;
 
-use crate::actor::core::{Actor, ActorInbox};
+use crate::actor::core::ReactiveActor;
 
 use super::StorageCall;
 
@@ -20,37 +18,27 @@ impl MemoryStorage {
     }
 }
 
-impl Actor for MemoryStorage {
-    type Call = StorageCall;
+impl ReactiveActor for MemoryStorage {
+    type ReactiveCall = StorageCall;
 
-    async fn start(
-        mut self,
-        mut inbox: ActorInbox<Self::Call>,
-        cancellation_token: CancellationToken,
-    ) -> Result<()> {
-        loop {
-            let result = select! {
-                _ = cancellation_token.cancelled() => break Ok(()),
-                message = inbox.recv() => message,
-            };
-            let Some(call) = result else { break Ok(()) };
+    async fn on_call(&mut self, call: Self::ReactiveCall) -> Result<()> {
+        match call {
+            StorageCall::Get(call) => {
+                let map = &self.map;
+                call.handle(
+                    |input| async move { Ok(map.get(&input.key).cloned()) },
+                )
+                .await;
+            },
 
-            match call {
-                StorageCall::Get(call) => {
-                    let map = &self.map;
-                    call.handle(|input| async move {
-                        Ok(map.get(&input.key).cloned())
-                    })
-                    .await;
-                },
-
-                StorageCall::Put(call) => {
-                    call.handle(|input| async {
-                        Ok(self.map.insert(input.key, input.value).is_none())
-                    })
-                    .await;
-                },
-            }
+            StorageCall::Put(call) => {
+                call.handle(|input| async {
+                    Ok(self.map.insert(input.key, input.value).is_none())
+                })
+                .await;
+            },
         }
+
+        Ok(())
     }
 }
