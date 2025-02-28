@@ -6,7 +6,7 @@ use tokio::{
     io::{self, AsyncWriteExt},
 };
 
-use crate::actor::core::ReactiveActor;
+use crate::actor::core::TrivialLoopActor;
 
 use super::StorageCall;
 
@@ -21,10 +21,10 @@ impl DirStorage {
     }
 }
 
-impl ReactiveActor for DirStorage {
-    type ReactiveCall = StorageCall;
+impl TrivialLoopActor for DirStorage {
+    type Call = StorageCall;
 
-    async fn on_call(&mut self, call: Self::ReactiveCall) -> Result<()> {
+    async fn on_call(&mut self, call: Self::Call) -> Result<()> {
         let dir_path = &self.dir_path;
 
         match call {

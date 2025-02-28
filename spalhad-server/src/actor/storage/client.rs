@@ -1,7 +1,7 @@
 use anyhow::Result;
 use spalhad_client::Client;
 
-use crate::actor::core::ReactiveActor;
+use crate::actor::core::TrivialLoopActor;
 
 use super::StorageCall;
 
@@ -16,10 +16,10 @@ impl ClientStorage {
     }
 }
 
-impl ReactiveActor for ClientStorage {
-    type ReactiveCall = StorageCall;
+impl TrivialLoopActor for ClientStorage {
+    type Call = StorageCall;
 
-    async fn on_call(&mut self, call: Self::ReactiveCall) -> Result<()> {
+    async fn on_call(&mut self, call: Self::Call) -> Result<()> {
         match call {
             StorageCall::Get(call) => {
                 call.handle(|input| async {

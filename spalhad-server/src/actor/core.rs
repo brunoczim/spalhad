@@ -7,6 +7,12 @@ use tokio_util::sync::CancellationToken;
 
 use crate::taks::TaskManager;
 
+pub trait CallSuperSet {
+    fn reply_error<E>(self, error: E) -> bool
+    where
+        E: Into<anyhow::Error>;
+}
+
 #[trait_variant::make(Send)]
 pub trait Actor {
     type Call;
@@ -19,18 +25,18 @@ pub trait Actor {
 }
 
 #[trait_variant::make(Send)]
-pub trait ReactiveActor {
-    type ReactiveCall;
+pub trait TrivialLoopActor {
+    type Call;
 
-    async fn on_call(&mut self, call: Self::ReactiveCall) -> Result<()>;
+    async fn on_call(&mut self, call: Self::Call) -> Result<()>;
 }
 
 impl<T> Actor for T
 where
-    T: ReactiveActor,
-    T::ReactiveCall: Send,
+    T: TrivialLoopActor,
+    T::Call: Send,
 {
-    type Call = T::ReactiveCall;
+    type Call = T::Call;
 
     async fn start(
         mut self,
@@ -94,10 +100,11 @@ impl<M> ActorHandle<M> {
     where
         M: From<ActorCall<I, O>>,
     {
-        let (callback_sender, callback_receiver) = oneshot::channel();
-        let call = ActorCall { input, callback: callback_sender };
+        let (sender, receiver) = oneshot::channel();
+        let callback = ActorCallback { sender };
+        let call = ActorCall { input, back: callback };
         self.forward(call).await?;
-        callback_receiver.await?
+        receiver.await?
     }
 
     pub async fn forward<C>(&self, call: C) -> Result<()>
@@ -119,27 +126,42 @@ impl<M> Clone for ActorHandle<M> {
 }
 
 #[derive(Debug)]
+pub struct ActorCallback<O> {
+    sender: oneshot::Sender<Result<O>>,
+}
+
+impl<O> ActorCallback<O> {
+    pub fn reply(self, output: Result<O>) -> bool {
+        let success = self.sender.send(output).is_ok();
+        if !success {
+            tracing::warn!("caller has closed");
+        }
+        success
+    }
+
+    pub fn reply_ok(self, output: O) -> bool {
+        self.reply(Ok(output))
+    }
+
+    pub fn reply_error(self, error: impl Into<anyhow::Error>) -> bool {
+        self.reply(Err(error.into()))
+    }
+}
+
+#[derive(Debug)]
 pub struct ActorCall<I, O> {
-    input: I,
-    callback: oneshot::Sender<Result<O>>,
+    pub input: I,
+    pub back: ActorCallback<O>,
 }
 
 impl<I, O> ActorCall<I, O> {
-    pub fn input(&self) -> &I {
-        &self.input
-    }
-
     pub async fn handle<F, A>(self, handler: F) -> bool
     where
         F: FnOnce(I) -> A,
         A: Future<Output = Result<O>>,
     {
         let output = handler(self.input).await;
-        let success = self.callback.send(output).is_ok();
-        if !success {
-            tracing::warn!("caller has closed");
-        }
-        success
+        self.back.reply(output)
     }
 }
 

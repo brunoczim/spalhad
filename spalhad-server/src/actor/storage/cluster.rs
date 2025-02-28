@@ -1,7 +1,7 @@
 use anyhow::Result;
 use spalhad_spec::kv::Key;
 
-use crate::actor::core::ReactiveActor;
+use crate::actor::core::TrivialLoopActor;
 
 use super::{StorageCall, StorageHandle};
 
@@ -34,17 +34,17 @@ impl ClusterStorage {
     }
 }
 
-impl ReactiveActor for ClusterStorage {
-    type ReactiveCall = StorageCall;
+impl TrivialLoopActor for ClusterStorage {
+    type Call = StorageCall;
 
-    async fn on_call(&mut self, call: Self::ReactiveCall) -> Result<()> {
+    async fn on_call(&mut self, call: Self::Call) -> Result<()> {
         match call {
             StorageCall::Get(call) => {
-                self.select(&call.input().key).forward(call).await?;
+                self.select(&call.input.key).forward(call).await?;
             },
 
             StorageCall::Put(call) => {
-                self.select(&call.input().key).forward(call).await?;
+                self.select(&call.input.key).forward(call).await?;
             },
         }
 

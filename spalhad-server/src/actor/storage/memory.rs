@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::Result;
 use spalhad_spec::kv::Key;
 
-use crate::actor::core::ReactiveActor;
+use crate::actor::core::TrivialLoopActor;
 
 use super::StorageCall;
 
@@ -18,10 +18,10 @@ impl MemoryStorage {
     }
 }
 
-impl ReactiveActor for MemoryStorage {
-    type ReactiveCall = StorageCall;
+impl TrivialLoopActor for MemoryStorage {
+    type Call = StorageCall;
 
-    async fn on_call(&mut self, call: Self::ReactiveCall) -> Result<()> {
+    async fn on_call(&mut self, call: Self::Call) -> Result<()> {
         match call {
             StorageCall::Get(call) => {
                 let map = &self.map;
