@@ -110,8 +110,8 @@ impl CallSuperSet for BouncerCall {
         E: Into<anyhow::Error>,
     {
         match self {
-            Self::Activate(call) => call.back.reply_error(error),
-            Self::IsActive(call) => call.back.reply_error(error),
+            Self::Activate(call) => call.reply_error(error),
+            Self::IsActive(call) => call.reply_error(error),
             Self::Storage(call) => call.reply_error(error),
         }
     }

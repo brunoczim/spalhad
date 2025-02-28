@@ -142,8 +142,13 @@ impl<O> ActorCallback<O> {
     pub fn reply_ok(self, output: O) -> bool {
         self.reply(Ok(output))
     }
+}
 
-    pub fn reply_error(self, error: impl Into<anyhow::Error>) -> bool {
+impl<O> CallSuperSet for ActorCallback<O> {
+    fn reply_error<E>(self, error: E) -> bool
+    where
+        E: Into<anyhow::Error>,
+    {
         self.reply(Err(error.into()))
     }
 }
@@ -162,6 +167,15 @@ impl<I, O> ActorCall<I, O> {
     {
         let output = handler(self.input).await;
         self.back.reply(output)
+    }
+}
+
+impl<I, O> CallSuperSet for ActorCall<I, O> {
+    fn reply_error<E>(self, error: E) -> bool
+    where
+        E: Into<anyhow::Error>,
+    {
+        self.back.reply_error(error)
     }
 }
 

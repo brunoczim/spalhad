@@ -39,8 +39,8 @@ impl CallSuperSet for StorageCall {
         E: Into<anyhow::Error>,
     {
         match self {
-            Self::Get(call) => call.back.reply_error(error),
-            Self::Put(call) => call.back.reply_error(error),
+            Self::Get(call) => call.reply_error(error),
+            Self::Put(call) => call.reply_error(error),
         }
     }
 }
