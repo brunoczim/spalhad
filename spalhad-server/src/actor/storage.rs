@@ -1,14 +1,12 @@
-use crate::actor::{
-    core::ActorHandle,
-    message::kv::{GetCall, PutCall},
-};
+use crate::actor::core::ActorHandle;
 
 pub use client::ClientStorage;
 pub use cluster::ClusterStorage;
 pub use dir::DirStorage;
 pub use memory::MemoryStorage;
+use spalhad_spec::kv::Key;
 
-use super::core::CallSuperSet;
+use super::core::{ActorCall, CallSuperSet};
 
 mod memory;
 mod dir;
@@ -46,3 +44,22 @@ impl CallSuperSet for StorageCall {
         }
     }
 }
+
+#[derive(Debug, Clone)]
+pub struct Get {
+    pub key: Key,
+}
+
+pub type GetOutput = Option<serde_json::Value>;
+
+pub type GetCall = ActorCall<Get, GetOutput>;
+
+#[derive(Debug, Clone)]
+pub struct Put {
+    pub key: Key,
+    pub value: serde_json::Value,
+}
+
+pub type PutOutput = bool;
+
+pub type PutCall = ActorCall<Put, PutOutput>;

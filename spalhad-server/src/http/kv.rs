@@ -8,7 +8,7 @@ use axum::{
 };
 use spalhad_spec::kv::{GetResponse, Key, PutRequest, PutResponse};
 
-use crate::actor::message::kv;
+use crate::actor::storage;
 
 use super::{
     App,
@@ -26,7 +26,7 @@ async fn get_by_key(
     Path(key): Path<Key>,
 ) -> HttpResult<GetResponse<serde_json::Value>> {
     app.storage()
-        .send(kv::Get { key })
+        .send(storage::Get { key })
         .await
         .map_err(error::make_response(StatusCode::INTERNAL_SERVER_ERROR))?
         .ok_or_else(|| anyhow!("key not found"))
@@ -41,7 +41,7 @@ async fn put_by_key(
     Json(body): Json<PutRequest<serde_json::Value>>,
 ) -> HttpResult<PutResponse> {
     app.storage()
-        .send(kv::Put { key, value: body.value })
+        .send(storage::Put { key, value: body.value })
         .await
         .map_err(error::make_response(StatusCode::INTERNAL_SERVER_ERROR))
         .map(|new| PutResponse { new })

@@ -1418,6 +1418,7 @@ dependencies = [
  "serde_json",
  "spalhad-client",
  "spalhad-spec",
+ "thiserror",
  "tokio",
  "tokio-util",
  "tower-http",
