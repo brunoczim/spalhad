@@ -1,18 +1,16 @@
 use anyhow::Result;
+use spalhad_actor::{
+    Actor,
+    ActorCall,
+    ActorHandle,
+    ActorOptions,
+    CallSuperSet,
+    TrivialLoopActor,
+};
 use spalhad_spec::cluster::RunId;
 use thiserror::Error;
 
-use super::{
-    core::{
-        Actor,
-        ActorCall,
-        ActorHandle,
-        ActorOptions,
-        CallSuperSet,
-        TrivialLoopActor,
-    },
-    storage::{StorageCall, StorageHandle},
-};
+use super::storage::{StorageCall, StorageHandle};
 
 #[derive(Debug)]
 pub struct Bouncer {

@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
 use anyhow::Result;
+use spalhad_actor::TrivialLoopActor;
 use spalhad_spec::kv::Key;
-
-use crate::actor::core::TrivialLoopActor;
 
 use super::StorageCall;
 

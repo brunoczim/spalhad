@@ -20,13 +20,13 @@ impl TaskManager {
         }
     }
 
-    pub fn spawn<F>(&self, task: F)
+    pub fn spawn<F>(&self, job: F)
     where
         F: Future<Output = Result<()>> + Send + 'static,
     {
         let failure = self.failure.clone();
         self.tasks.spawn(async move {
-            if let Err(error) = task.await {
+            if let Err(error) = job.await {
                 let mut flag = failure.lock().await;
                 *flag = true;
                 eprintln!("Task failed!");

@@ -1,0 +1,12 @@
+[package]
+name = "spalhad-actor"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+anyhow = { workspace = true }
+tokio = { workspace = true }
+tokio-util = { workspace = true }
+trait-variant = { workspace = true }
+tracing = { workspace = true }
+spalhad-task = { path = "../spalhad-task" }

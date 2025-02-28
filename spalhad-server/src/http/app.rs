@@ -1,9 +1,9 @@
 use anyhow::Result;
+use spalhad_actor::{Actor, ActorOptions};
 use spalhad_spec::cluster::RunId;
 
 use crate::actor::{
     bouncer::{Bouncer, BouncerHandle},
-    core::{Actor, ActorOptions},
     storage::StorageCall,
 };
 

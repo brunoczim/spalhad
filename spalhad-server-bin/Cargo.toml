@@ -12,3 +12,5 @@ tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 spalhad-spec = { path = "../spalhad-spec" }
 spalhad-server = { path = "../spalhad-server" }
+spalhad-task = { path = "../spalhad-task" }
+spalhad-actor = { path = "../spalhad-actor" }

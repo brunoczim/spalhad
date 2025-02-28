@@ -2,16 +2,19 @@ use std::{backtrace::BacktraceStatus, iter, path::PathBuf};
 
 use anyhow::{Result, bail};
 use clap::Parser;
+use spalhad_actor::ActorOptions;
 use spalhad_server::{
-    actor::{
-        core::ActorOptions,
-        storage::{ClientStorage, ClusterStorage, DirStorage, MemoryStorage},
+    actor::storage::{
+        ClientStorage,
+        ClusterStorage,
+        DirStorage,
+        MemoryStorage,
     },
     http::{self, App},
     sync,
-    taks::TaskManager,
 };
 use spalhad_spec::cluster::ClusterConfig;
+use spalhad_task::TaskManager;
 use tokio::fs;
 use tracing::Level;
 use tracing_subscriber::{

@@ -1,12 +1,9 @@
-use crate::actor::core::ActorHandle;
-
 pub use client::ClientStorage;
 pub use cluster::ClusterStorage;
 pub use dir::DirStorage;
 pub use memory::MemoryStorage;
+use spalhad_actor::{ActorCall, ActorHandle, CallSuperSet};
 use spalhad_spec::kv::Key;
-
-use super::core::{ActorCall, CallSuperSet};
 
 mod memory;
 mod dir;

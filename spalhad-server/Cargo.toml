@@ -17,3 +17,5 @@ tracing = { workspace = true }
 trait-variant = { workspace = true }
 spalhad-spec = { path = "../spalhad-spec" }
 spalhad-client = { path = "../spalhad-client" }
+spalhad-task = { path = "../spalhad-task" }
+spalhad-actor = { path = "../spalhad-actor" }

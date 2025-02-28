@@ -1385,6 +1385,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "spalhad-actor"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "spalhad-task",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "trait-variant",
+]
+
+[[package]]
 name = "spalhad-client"
 version = "0.1.0"
 dependencies = [
@@ -1416,8 +1428,10 @@ dependencies = [
  "axum",
  "serde",
  "serde_json",
+ "spalhad-actor",
  "spalhad-client",
  "spalhad-spec",
+ "spalhad-task",
  "thiserror",
  "tokio",
  "tokio-util",
@@ -1434,8 +1448,10 @@ dependencies = [
  "anyhow",
  "clap",
  "serde_json",
+ "spalhad-actor",
  "spalhad-server",
  "spalhad-spec",
+ "spalhad-task",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -1451,6 +1467,15 @@ dependencies = [
  "serde",
  "sha3",
  "thiserror",
+]
+
+[[package]]
+name = "spalhad-task"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "tokio",
+ "tokio-util",
 ]
 
 [[package]]

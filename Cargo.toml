@@ -1,5 +1,13 @@
 [workspace]
-members = [ "spalhad-client", "spalhad-client-bin", "spalhad-server", "spalhad-server-bin","spalhad-spec"]
+members = [
+    "spalhad-actor",
+    "spalhad-client",
+    "spalhad-client-bin",
+    "spalhad-server",
+    "spalhad-server-bin",
+    "spalhad-spec",
+    "spalhad-task",
+]
 resolver = "2"
 
 [workspace.package]
