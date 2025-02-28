@@ -4,7 +4,13 @@ use anyhow::{Result, bail};
 use reqwest::StatusCode;
 use serde::{Serialize, de::DeserializeOwned};
 use spalhad_spec::{
-    cluster::{RunId, RunIdResponse},
+    cluster::{
+        ActivateRequest,
+        ActivateResponse,
+        IsActiveResponse,
+        RunId,
+        RunIdResponse,
+    },
     kv::{GetResponse, Key, PutRequest, PutResponse},
 };
 
@@ -56,6 +62,37 @@ impl Client {
         }
         let run_id_response: RunIdResponse = response.json().await?;
         Ok(run_id_response.run_id)
+    }
+
+    pub async fn activate(&self, run_id: RunId) -> Result<ActivateResponse> {
+        let url = format!("{}/sync/activate", self.base_url());
+        let body = ActivateRequest { run_id };
+        let request = self.http_impl().post(url).json(&body).build()?;
+        let response = self.http_impl().execute(request).await?;
+        if response.status() != StatusCode::OK {
+            bail!(
+                "Request failed with status {}, body {}",
+                response.status(),
+                response.text().await?,
+            )
+        }
+        let activate_response: ActivateResponse = response.json().await?;
+        Ok(activate_response)
+    }
+
+    pub async fn is_active(&self) -> Result<ActivateResponse> {
+        let url = format!("{}/sync/active", self.base_url(),);
+        let request = self.http_impl().get(url).build()?;
+        let response = self.http_impl().execute(request).await?;
+        if response.status() != StatusCode::OK {
+            bail!(
+                "Request failed with status {}, body {}",
+                response.status(),
+                response.text().await?,
+            )
+        }
+        let activate_response: IsActiveResponse = response.json().await?;
+        Ok(activate_response)
     }
 
     pub async fn get<K, V>(&self, key_data: K) -> Result<Option<V>>

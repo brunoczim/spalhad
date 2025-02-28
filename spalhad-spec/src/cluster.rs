@@ -15,3 +15,15 @@ pub struct ClusterConfig {
 pub struct RunIdResponse {
     pub run_id: RunId,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ActivateRequest {
+    pub run_id: RunId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct IsActiveResponse {
+    pub is_active: bool,
+}
+
+pub type ActivateResponse = IsActiveResponse;

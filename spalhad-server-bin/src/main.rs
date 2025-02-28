@@ -78,8 +78,7 @@ async fn try_main(args: CliArgs) -> Result<()> {
         .chain(iter::once(self_kv))
         .chain(clients_high.map(spawn_client));
 
-    let cluster_kv = storage_options.spawn(ClusterStorage::open(nodes));
-    let app = App::new(cluster_kv)?;
+    let app = App::new(&storage_options, ClusterStorage::open(nodes))?;
 
     let self_run_id = app.self_run_id();
     let self_base_url = cluster_config.addresses[args.self_id].clone();
@@ -89,7 +88,7 @@ async fn try_main(args: CliArgs) -> Result<()> {
     task_manager.spawn(async move { http::serve(&bind_address, router).await });
 
     task_manager.spawn(async move {
-        sync::check_self_address(self_run_id, &self_base_url).await
+        sync::activate(self_run_id, &self_base_url).await
     });
 
     task_manager.wait_all().await?;

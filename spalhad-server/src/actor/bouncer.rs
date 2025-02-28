@@ -3,7 +3,14 @@ use spalhad_spec::cluster::RunId;
 use thiserror::Error;
 
 use super::{
-    core::{ActorCall, ActorHandle, CallSuperSet, TrivialLoopActor},
+    core::{
+        Actor,
+        ActorCall,
+        ActorHandle,
+        ActorOptions,
+        CallSuperSet,
+        TrivialLoopActor,
+    },
     storage::{StorageCall, StorageHandle},
 };
 
@@ -15,7 +22,15 @@ pub struct Bouncer {
 }
 
 impl Bouncer {
-    pub fn open(run_id: RunId, storage: StorageHandle) -> Self {
+    pub fn open<A>(
+        run_id: RunId,
+        storage_options: &ActorOptions<'_>,
+        storage_actor: A,
+    ) -> Self
+    where
+        A: Actor<Call = StorageCall> + 'static,
+    {
+        let storage = storage_options.spawn(storage_actor);
         Self { active: false, run_id, storage }
     }
 }
@@ -26,14 +41,14 @@ impl TrivialLoopActor for Bouncer {
     async fn on_call(&mut self, call: Self::Call) -> Result<()> {
         match call {
             BouncerCall::Activate(call) if self.active => {
-                call.back.reply_error(AlreadyActive);
+                call.back.reply_error(Error::AlreadyActive);
             },
             BouncerCall::Activate(call) if self.run_id == call.input.run_id => {
                 self.active = true;
-                call.back.reply_ok(ActivateOutput);
+                call.back.reply_ok(Activated);
             },
             BouncerCall::Activate(call) => {
-                call.back.reply_error(BadRunId);
+                call.back.reply_error(Error::BadRunId);
             },
             BouncerCall::IsActive(call) => {
                 call.back.reply_ok(self.active);
@@ -42,7 +57,7 @@ impl TrivialLoopActor for Bouncer {
                 self.storage.forward(call).await?;
             },
             BouncerCall::Storage(call) => {
-                call.reply_error(NotActive);
+                call.reply_error(Error::NotActive);
             },
         }
         Ok(())
@@ -50,33 +65,16 @@ impl TrivialLoopActor for Bouncer {
 }
 
 #[derive(Debug, Error)]
-#[error("bouncer is already active")]
-pub struct AlreadyActive;
-
-#[derive(Debug, Error)]
-#[error("attempted to activate bouncer with incorrect run id")]
-pub struct BadRunId;
-
-#[derive(Debug, Error)]
-#[error("bouncer is not active yet")]
-pub struct NotActive;
-
-#[derive(Debug, Clone)]
-pub struct Activate {
-    pub run_id: RunId,
+pub enum Error {
+    #[error("bouncer is already active")]
+    AlreadyActive,
+    #[error("attempted to activate bouncer with incorrect run id")]
+    BadRunId,
+    #[error("bouncer is not active yet")]
+    NotActive,
 }
 
-#[derive(Debug)]
-pub struct ActivateOutput;
-
-pub type ActivateCall = ActorCall<Activate, ActivateOutput>;
-
-#[derive(Debug, Clone)]
-pub struct IsActive;
-
-pub type IsActiveOutput = bool;
-
-pub type IsActiveCall = ActorCall<IsActive, IsActiveOutput>;
+pub type BouncerHandle = ActorHandle<BouncerCall>;
 
 #[derive(Debug)]
 pub enum BouncerCall {
@@ -119,4 +117,19 @@ impl CallSuperSet for BouncerCall {
     }
 }
 
-pub type BouncerHandle = ActorHandle<BouncerCall>;
+#[derive(Debug, Clone)]
+pub struct Activate {
+    pub run_id: RunId,
+}
+
+#[derive(Debug)]
+pub struct Activated;
+
+pub type ActivateCall = ActorCall<Activate, Activated>;
+
+#[derive(Debug, Clone)]
+pub struct IsActive;
+
+pub type IsActiveOutput = bool;
+
+pub type IsActiveCall = ActorCall<IsActive, IsActiveOutput>;
