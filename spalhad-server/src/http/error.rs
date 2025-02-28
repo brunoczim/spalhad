@@ -15,7 +15,7 @@ pub fn make_response(
     }
 }
 
-pub fn catch_bouncer(
+pub fn when_not_bouncer(
     fallback_status: StatusCode,
 ) -> impl FnOnce(anyhow::Error) -> (StatusCode, Json<Error>) + Send + 'static {
     move |error| {

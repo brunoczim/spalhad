@@ -38,7 +38,7 @@ pub async fn activate(
     app.bouncer()
         .send(bouncer::Activate { run_id: body.run_id })
         .await
-        .map_err(error::catch_bouncer(StatusCode::INTERNAL_SERVER_ERROR))
+        .map_err(error::when_not_bouncer(StatusCode::INTERNAL_SERVER_ERROR))
         .map(|_| ActivateResponse { is_active: true })
         .map(Json)
 }
