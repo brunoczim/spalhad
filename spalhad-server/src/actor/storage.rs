@@ -12,7 +12,7 @@ mod cluster;
 
 pub type StorageHandle = ActorHandle<StorageCall>;
 
-#[derive(Debug)]
+#[derive(Debug, CallSuperSet)]
 pub enum StorageCall {
     Get(GetCall),
     Put(PutCall),
@@ -27,18 +27,6 @@ impl From<GetCall> for StorageCall {
 impl From<PutCall> for StorageCall {
     fn from(message: PutCall) -> Self {
         Self::Put(message)
-    }
-}
-
-impl CallSuperSet for StorageCall {
-    fn reply_error<E>(self, error: E) -> bool
-    where
-        E: Into<anyhow::Error>,
-    {
-        match self {
-            Self::Get(call) => call.reply_error(error),
-            Self::Put(call) => call.reply_error(error),
-        }
     }
 }
 

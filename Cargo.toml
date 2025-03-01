@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "spalhad-actor",
+    "spalhad-actor", "spalhad-actor-macros",
     "spalhad-client",
     "spalhad-client-bin",
     "spalhad-server",

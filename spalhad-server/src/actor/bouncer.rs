@@ -74,7 +74,7 @@ pub enum Error {
 
 pub type BouncerHandle = ActorHandle<BouncerCall>;
 
-#[derive(Debug)]
+#[derive(Debug, CallSuperSet)]
 pub enum BouncerCall {
     Activate(ActivateCall),
     IsActive(IsActiveCall),
@@ -99,19 +99,6 @@ where
 {
     fn from(call: C) -> Self {
         Self::Storage(call.into())
-    }
-}
-
-impl CallSuperSet for BouncerCall {
-    fn reply_error<E>(self, error: E) -> bool
-    where
-        E: Into<anyhow::Error>,
-    {
-        match self {
-            Self::Activate(call) => call.reply_error(error),
-            Self::IsActive(call) => call.reply_error(error),
-            Self::Storage(call) => call.reply_error(error),
-        }
     }
 }
 

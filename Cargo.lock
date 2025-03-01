@@ -1389,11 +1389,21 @@ name = "spalhad-actor"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "spalhad-actor-macros",
  "spalhad-task",
  "tokio",
  "tokio-util",
  "tracing",
  "trait-variant",
+]
+
+[[package]]
+name = "spalhad-actor-macros"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

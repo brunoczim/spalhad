@@ -10,3 +10,4 @@ tokio-util = { workspace = true }
 trait-variant = { workspace = true }
 tracing = { workspace = true }
 spalhad-task = { path = "../spalhad-task" }
+spalhad-actor-macros = { path = "../spalhad-actor-macros" }

@@ -7,6 +7,8 @@ use tokio_util::sync::CancellationToken;
 
 use spalhad_task::TaskManager;
 
+pub use spalhad_actor_macros::CallSuperSet;
+
 pub trait CallSuperSet {
     fn reply_error<E>(self, error: E) -> bool
     where
