@@ -6,9 +6,9 @@ use spalhad_actor::ActorOptions;
 use spalhad_server::{
     actor::storage::{
         ClientStorage,
-        ClusterStorage,
         DirStorage,
         MemoryStorage,
+        StaticClusterStorage,
     },
     http::{self, App},
     sync,
@@ -81,7 +81,7 @@ async fn try_main(args: CliArgs) -> Result<()> {
         .chain(iter::once(self_kv))
         .chain(clients_high.map(spawn_client));
 
-    let app = App::new(&storage_options, ClusterStorage::open(nodes))?;
+    let app = App::new(&storage_options, StaticClusterStorage::open(nodes))?;
 
     let self_run_id = app.self_run_id();
     let self_base_url = cluster_config.addresses[args.self_id].clone();

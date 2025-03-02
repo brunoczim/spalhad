@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 pub use run_id::RunId;
 
 pub mod run_id;
+pub mod node_id;
 
 #[derive(
     Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
