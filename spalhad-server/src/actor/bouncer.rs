@@ -1,35 +1,28 @@
 use anyhow::Result;
-use spalhad_actor::{
-    Actor,
-    ActorCall,
-    ActorHandle,
-    ActorOptions,
-    CallSuperSet,
-    TrivialLoopActor,
-};
+use spalhad_actor::{ActorCall, ActorHandle, CallSuperset, TrivialLoopActor};
 use spalhad_spec::cluster::RunId;
 use thiserror::Error;
 
-use super::storage::{StorageCall, StorageHandle};
+use super::{
+    coordinator::{self, CoordinatorCall, CoordinatorHandle},
+    storage::{self, StorageCall, StorageHandle},
+};
 
 #[derive(Debug)]
 pub struct Bouncer {
     active: bool,
     run_id: RunId,
     storage: StorageHandle,
+    coordinator: CoordinatorHandle,
 }
 
 impl Bouncer {
-    pub fn open<A>(
+    pub fn open(
         run_id: RunId,
-        storage_options: &ActorOptions<'_>,
-        storage_actor: A,
-    ) -> Self
-    where
-        A: Actor<Call = StorageCall> + 'static,
-    {
-        let storage = storage_options.spawn(storage_actor);
-        Self { active: false, run_id, storage }
+        storage: StorageHandle,
+        coordinator: CoordinatorHandle,
+    ) -> Self {
+        Self { active: false, run_id, storage, coordinator }
     }
 }
 
@@ -54,6 +47,9 @@ impl TrivialLoopActor for Bouncer {
             BouncerCall::Storage(call) if self.active => {
                 self.storage.forward(call).await?;
             },
+            BouncerCall::Coordinator(call) => {
+                self.coordinator.forward(call).await?;
+            },
             BouncerCall::Storage(call) => {
                 call.reply_error(Error::NotActive);
             },
@@ -74,31 +70,25 @@ pub enum Error {
 
 pub type BouncerHandle = ActorHandle<BouncerCall>;
 
-#[derive(Debug, CallSuperSet)]
+#[derive(Debug, CallSuperset)]
 pub enum BouncerCall {
     Activate(ActivateCall),
     IsActive(IsActiveCall),
+    #[spalhad(flatten { storage::GetCall, storage::PutCall })]
     Storage(StorageCall),
+    #[spalhad(flatten { coordinator::GetCall, coordinator::PutCall })]
+    Coordinator(CoordinatorCall),
 }
 
-impl From<ActivateCall> for BouncerCall {
-    fn from(call: ActivateCall) -> Self {
-        Self::Activate(call)
+impl From<StorageCall> for BouncerCall {
+    fn from(call: StorageCall) -> Self {
+        Self::Storage(call)
     }
 }
 
-impl From<IsActiveCall> for BouncerCall {
-    fn from(call: IsActiveCall) -> Self {
-        Self::IsActive(call)
-    }
-}
-
-impl<C> From<C> for BouncerCall
-where
-    C: Into<StorageCall>,
-{
-    fn from(call: C) -> Self {
-        Self::Storage(call.into())
+impl From<CoordinatorCall> for BouncerCall {
+    fn from(call: CoordinatorCall) -> Self {
+        Self::Coordinator(call)
     }
 }
 

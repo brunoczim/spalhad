@@ -9,6 +9,7 @@ pub mod node_id;
     Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
 )]
 pub struct ClusterConfig {
+    pub replication: usize,
     pub addresses: Vec<String>,
 }
 

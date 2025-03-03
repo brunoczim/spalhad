@@ -4,11 +4,13 @@ use anyhow::{Result, bail};
 use clap::Parser;
 use spalhad_actor::ActorOptions;
 use spalhad_server::{
-    actor::storage::{
-        ClientStorage,
-        DirStorage,
-        MemoryStorage,
-        StaticClusterStorage,
+    actor::{
+        coordinator::Coordinator,
+        storage::{
+            ClientStorage,
+            DirStorage,
+            MemoryStorage,
+        },
     },
     http::{self, App},
     sync,
@@ -34,6 +36,8 @@ struct CliArgs {
     persistence_dir: Option<PathBuf>,
     #[clap(short, long, default_value = "cluster.config.json")]
     cluster_config: PathBuf,
+    #[clap(long, default_value_t = 4)]
+    concurrency_level: usize,
     #[clap(short, long)]
     self_id: usize,
 }
@@ -78,10 +82,16 @@ async fn try_main(args: CliArgs) -> Result<()> {
 
     let nodes = clients_low
         .map(spawn_client)
-        .chain(iter::once(self_kv))
+        .chain(iter::once(self_kv.clone()))
         .chain(clients_high.map(spawn_client));
 
-    let app = App::new(&storage_options, StaticClusterStorage::open(nodes))?;
+    let coordinator = storage_options.spawn(Coordinator::new(
+        cluster_config.replication,
+        args.concurrency_level,
+        nodes,
+    ));
+
+    let app = App::new(&storage_options, self_kv, coordinator)?;
 
     let self_run_id = app.self_run_id();
     let self_base_url = cluster_config.addresses[args.self_id].clone();

@@ -22,14 +22,14 @@ impl TrivialLoopActor for ClientStorage {
         match call {
             StorageCall::Get(call) => {
                 call.handle(|input| async {
-                    self.client.get_raw(input.key).await
+                    self.client.get_internal(input.key).await
                 })
                 .await;
             },
 
             StorageCall::Put(call) => {
                 call.handle(|input| async {
-                    self.client.put_raw(input.key, input.value).await
+                    self.client.put_internal(input.key, input.value).await
                 })
                 .await;
             },

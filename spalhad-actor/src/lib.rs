@@ -7,12 +7,32 @@ use tokio_util::sync::CancellationToken;
 
 use spalhad_task::TaskManager;
 
-pub use spalhad_actor_macros::CallSuperSet;
+pub use spalhad_actor_macros::CallSuperset;
 
-pub trait CallSuperSet {
+pub trait CallSuperset {
     fn reply_error<E>(self, error: E) -> bool
     where
         E: Into<anyhow::Error>;
+}
+
+pub trait CallInjection<C: CallConnectors>: CallSuperset + Sized {
+    fn inject(call: C) -> Self;
+}
+
+impl<I, O> CallInjection<Self> for ActorCall<I, O> {
+    fn inject(call: Self) -> Self {
+        call
+    }
+}
+
+pub trait CallConnectors {
+    type Input;
+    type Output;
+}
+
+impl<I, O> CallConnectors for ActorCall<I, O> {
+    type Input = I;
+    type Output = O;
 }
 
 #[trait_variant::make(Send)]
@@ -100,12 +120,12 @@ pub struct ActorHandle<M> {
 impl<M> ActorHandle<M> {
     pub async fn send<I, O>(&self, input: I) -> Result<O>
     where
-        M: From<ActorCall<I, O>>,
+        M: CallInjection<ActorCall<I, O>>,
     {
         let (sender, receiver) = oneshot::channel();
         let callback = ActorCallback { sender };
         let call = ActorCall { input, back: callback };
-        self.forward(call).await?;
+        self.forward(M::inject(call)).await?;
         receiver.await?
     }
 
@@ -146,7 +166,7 @@ impl<O> ActorCallback<O> {
     }
 }
 
-impl<O> CallSuperSet for ActorCallback<O> {
+impl<O> CallSuperset for ActorCallback<O> {
     fn reply_error<E>(self, error: E) -> bool
     where
         E: Into<anyhow::Error>,
@@ -172,7 +192,7 @@ impl<I, O> ActorCall<I, O> {
     }
 }
 
-impl<I, O> CallSuperSet for ActorCall<I, O> {
+impl<I, O> CallSuperset for ActorCall<I, O> {
     fn reply_error<E>(self, error: E) -> bool
     where
         E: Into<anyhow::Error>,

@@ -150,4 +150,44 @@ impl Client {
         let put_response: PutResponse = response.json().await?;
         Ok(put_response.new)
     }
+
+    pub async fn get_internal<V>(&self, key: Key) -> Result<Option<V>>
+    where
+        V: DeserializeOwned,
+    {
+        let url = format!("{}/interna-lkv/{}", self.base_url(), key);
+        let request = self.http_impl().get(url).build()?;
+        let response = self.http_impl().execute(request).await?;
+        if response.status() == StatusCode::NOT_FOUND {
+            Ok(None)
+        } else if response.status() != StatusCode::OK {
+            bail!(
+                "Request failed with status {}, body {}",
+                response.status(),
+                response.text().await?,
+            )
+        } else {
+            let get_response: GetResponse<V> = response.json().await?;
+            Ok(Some(get_response.value))
+        }
+    }
+
+    pub async fn put_internal<V>(&self, key: Key, value: V) -> Result<bool>
+    where
+        V: Serialize,
+    {
+        let url = format!("{}/internal-kv/{}", self.base_url(), key);
+        let body = PutRequest { value };
+        let request = self.http_impl().post(url).json(&body).build()?;
+        let response = self.http_impl().execute(request).await?;
+        if response.status() != StatusCode::OK {
+            bail!(
+                "Request failed with status {}, body {}",
+                response.status(),
+                response.text().await?,
+            )
+        }
+        let put_response: PutResponse = response.json().await?;
+        Ok(put_response.new)
+    }
 }

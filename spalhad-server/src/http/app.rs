@@ -1,10 +1,11 @@
 use anyhow::Result;
-use spalhad_actor::{Actor, ActorOptions};
+use spalhad_actor::ActorOptions;
 use spalhad_spec::cluster::RunId;
 
 use crate::actor::{
     bouncer::{Bouncer, BouncerHandle},
-    storage::StorageCall,
+    coordinator::CoordinatorHandle,
+    storage::StorageHandle,
 };
 
 #[derive(Debug, Clone)]
@@ -14,16 +15,13 @@ pub struct App {
 }
 
 impl App {
-    pub fn new<A>(
+    pub fn new(
         storage_options: &ActorOptions<'_>,
-        storage_actor: A,
-    ) -> Result<Self>
-    where
-        A: Actor<Call = StorageCall> + 'static,
-    {
+        storage: StorageHandle,
+        coordinator: CoordinatorHandle,
+    ) -> Result<Self> {
         let run_id = RunId::generate()?;
-        let bouncer_actor =
-            Bouncer::open(run_id, storage_options, storage_actor);
+        let bouncer_actor = Bouncer::open(run_id, storage, coordinator);
         let bouncer = storage_options.spawn(bouncer_actor);
         Ok(Self { bouncer, run_id })
     }

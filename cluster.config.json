@@ -1,4 +1,5 @@
 {
+  "replication": 3,
   "addresses": [
     "http://spalhad-node-0:5000",
     "http://spalhad-node-1:5000",

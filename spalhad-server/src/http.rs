@@ -10,9 +10,13 @@ mod app;
 
 pub mod kv;
 pub mod sync;
+pub mod internal;
 
 pub fn router() -> Router<App> {
-    Router::new().nest("/kv", kv::router()).nest("/sync", sync::router())
+    Router::new()
+        .nest("/kv", kv::router())
+        .nest("/sync", sync::router())
+        .nest("/internal-kv", internal::router())
 }
 
 pub async fn serve(bind_address: &str, router: Router) -> Result<()> {
