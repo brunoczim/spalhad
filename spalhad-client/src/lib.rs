@@ -1,6 +1,6 @@
-use std::{hash::Hash, sync::Arc};
+use std::{hash::Hash, sync::Arc, time::Duration};
 
-use anyhow::{Result, bail};
+use anyhow::Result;
 use reqwest::StatusCode;
 use serde::{Serialize, de::DeserializeOwned};
 use spalhad_spec::{
@@ -13,11 +13,37 @@ use spalhad_spec::{
     },
     kv::{GetResponse, Key, PutRequest, PutResponse},
 };
+use thiserror::Error;
 
 #[derive(Debug)]
 struct Inner {
     base_url: Box<str>,
     http_impl: reqwest::Client,
+}
+
+#[derive(Debug, Clone, Error)]
+#[error(
+    "Request failed with status {} and body {}",
+    .status_code.as_u16(),
+    .text_body,
+)]
+pub struct ResponseError {
+    pub status_code: StatusCode,
+    pub text_body: String,
+    pub json_body: Option<spalhad_spec::Error>,
+}
+
+impl ResponseError {
+    async fn new(response: reqwest::Response) -> Result<Self> {
+        let status_code = response.status();
+        let text_body = response.text().await?;
+        let json_body = serde_json::from_str(&text_body).ok();
+        Ok(Self { status_code, text_body, json_body })
+    }
+
+    async fn bail<T>(response: reqwest::Response) -> Result<T> {
+        Err(Self::new(response).await?)?
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -33,12 +59,22 @@ impl Default for Client {
 
 impl Client {
     pub fn new(base_url: impl AsRef<str>) -> Self {
-        Self {
+        Self::with_timeout(base_url, Duration::from_secs(90))
+            .expect("bad default timeout")
+    }
+
+    pub fn with_timeout(
+        base_url: impl AsRef<str>,
+        timeout: Duration,
+    ) -> Result<Self> {
+        Ok(Self {
             inner: Arc::new(Inner {
                 base_url: Box::from(base_url.as_ref()),
-                http_impl: reqwest::Client::new(),
+                http_impl: reqwest::Client::builder()
+                    .timeout(timeout)
+                    .build()?,
             }),
-        }
+        })
     }
 
     pub fn base_url(&self) -> &str {
@@ -54,14 +90,11 @@ impl Client {
         let request = self.http_impl().get(url).build()?;
         let response = self.http_impl().execute(request).await?;
         if response.status() != StatusCode::OK {
-            bail!(
-                "Request failed with status {}, body {}",
-                response.status(),
-                response.text().await?,
-            )
+            ResponseError::bail(response).await
+        } else {
+            let run_id_response: RunIdResponse = response.json().await?;
+            Ok(run_id_response.run_id)
         }
-        let run_id_response: RunIdResponse = response.json().await?;
-        Ok(run_id_response.run_id)
     }
 
     pub async fn activate(&self, run_id: RunId) -> Result<ActivateResponse> {
@@ -69,30 +102,24 @@ impl Client {
         let body = ActivateRequest { run_id };
         let request = self.http_impl().post(url).json(&body).build()?;
         let response = self.http_impl().execute(request).await?;
-        if response.status() != StatusCode::OK {
-            bail!(
-                "Request failed with status {}, body {}",
-                response.status(),
-                response.text().await?,
-            )
+        if response.status() == StatusCode::OK {
+            let activate_response: ActivateResponse = response.json().await?;
+            Ok(activate_response)
+        } else {
+            ResponseError::bail(response).await
         }
-        let activate_response: ActivateResponse = response.json().await?;
-        Ok(activate_response)
     }
 
     pub async fn is_active(&self) -> Result<ActivateResponse> {
         let url = format!("{}/sync/active", self.base_url(),);
         let request = self.http_impl().get(url).build()?;
         let response = self.http_impl().execute(request).await?;
-        if response.status() != StatusCode::OK {
-            bail!(
-                "Request failed with status {}, body {}",
-                response.status(),
-                response.text().await?,
-            )
+        if response.status() == StatusCode::OK {
+            let activate_response: IsActiveResponse = response.json().await?;
+            Ok(activate_response)
+        } else {
+            ResponseError::bail(response).await
         }
-        let activate_response: IsActiveResponse = response.json().await?;
-        Ok(activate_response)
     }
 
     pub async fn get<K, V>(&self, key_data: K) -> Result<Option<V>>
@@ -119,16 +146,13 @@ impl Client {
         let request = self.http_impl().get(url).build()?;
         let response = self.http_impl().execute(request).await?;
         if response.status() == StatusCode::NOT_FOUND {
-            Ok(None)
-        } else if response.status() != StatusCode::OK {
-            bail!(
-                "Request failed with status {}, body {}",
-                response.status(),
-                response.text().await?,
-            )
-        } else {
+            let error = ResponseError::new(response).await?;
+            if error.json_body.is_some() { Ok(None) } else { Err(error.into()) }
+        } else if response.status() == StatusCode::OK {
             let get_response: GetResponse<V> = response.json().await?;
             Ok(Some(get_response.value))
+        } else {
+            ResponseError::bail(response).await
         }
     }
 
@@ -140,35 +164,29 @@ impl Client {
         let body = PutRequest { value };
         let request = self.http_impl().post(url).json(&body).build()?;
         let response = self.http_impl().execute(request).await?;
-        if response.status() != StatusCode::OK {
-            bail!(
-                "Request failed with status {}, body {}",
-                response.status(),
-                response.text().await?,
-            )
+        if response.status() == StatusCode::OK {
+            let put_response: PutResponse = response.json().await?;
+            Ok(put_response.new)
+        } else {
+            ResponseError::bail(response).await
         }
-        let put_response: PutResponse = response.json().await?;
-        Ok(put_response.new)
     }
 
     pub async fn get_internal<V>(&self, key: Key) -> Result<Option<V>>
     where
         V: DeserializeOwned,
     {
-        let url = format!("{}/interna-lkv/{}", self.base_url(), key);
+        let url = format!("{}/internal-kv/{}", self.base_url(), key);
         let request = self.http_impl().get(url).build()?;
         let response = self.http_impl().execute(request).await?;
         if response.status() == StatusCode::NOT_FOUND {
-            Ok(None)
-        } else if response.status() != StatusCode::OK {
-            bail!(
-                "Request failed with status {}, body {}",
-                response.status(),
-                response.text().await?,
-            )
-        } else {
+            let error = ResponseError::new(response).await?;
+            if error.json_body.is_some() { Ok(None) } else { Err(error.into()) }
+        } else if response.status() == StatusCode::OK {
             let get_response: GetResponse<V> = response.json().await?;
             Ok(Some(get_response.value))
+        } else {
+            ResponseError::bail(response).await
         }
     }
 
@@ -180,14 +198,11 @@ impl Client {
         let body = PutRequest { value };
         let request = self.http_impl().post(url).json(&body).build()?;
         let response = self.http_impl().execute(request).await?;
-        if response.status() != StatusCode::OK {
-            bail!(
-                "Request failed with status {}, body {}",
-                response.status(),
-                response.text().await?,
-            )
+        if response.status() == StatusCode::OK {
+            let put_response: PutResponse = response.json().await?;
+            Ok(put_response.new)
+        } else {
+            ResponseError::bail(response).await
         }
-        let put_response: PutResponse = response.json().await?;
-        Ok(put_response.new)
     }
 }

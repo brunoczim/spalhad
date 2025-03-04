@@ -1,4 +1,4 @@
-use std::{backtrace::BacktraceStatus, iter, path::PathBuf};
+use std::{backtrace::BacktraceStatus, path::PathBuf, time::Duration};
 
 use anyhow::{Result, bail};
 use clap::Parser;
@@ -6,11 +6,7 @@ use spalhad_actor::ActorOptions;
 use spalhad_server::{
     actor::{
         coordinator::Coordinator,
-        storage::{
-            ClientStorage,
-            DirStorage,
-            MemoryStorage,
-        },
+        storage::{ClientStorage, DirStorage, MemoryStorage},
     },
     http::{self, App},
     sync,
@@ -26,6 +22,8 @@ use tracing_subscriber::{
     util::SubscriberInitExt,
 };
 
+mod util;
+
 #[derive(Debug, Clone, Parser)]
 struct CliArgs {
     #[clap(short, long, default_value = "0.0.0.0:5500")]
@@ -40,6 +38,13 @@ struct CliArgs {
     concurrency_level: usize,
     #[clap(short, long)]
     self_id: usize,
+    #[clap(
+        short = 't',
+        long,
+        default_value = "200ms",
+        value_parser = util::parse_duration,
+    )]
+    communication_timeout: Duration,
 }
 
 fn setup_logging() -> Result<()> {
@@ -75,18 +80,23 @@ async fn try_main(args: CliArgs) -> Result<()> {
 
     tracing::info!("self-id is {}", args.self_id);
 
-    let clients_low = cluster_config.addresses[.. args.self_id].iter();
-    let clients_high = cluster_config.addresses[args.self_id + 1 ..].iter();
-    let spawn_client =
-        |base_url| storage_options.spawn(ClientStorage::open(base_url));
-
-    let nodes = clients_low
-        .map(spawn_client)
-        .chain(iter::once(self_kv.clone()))
-        .chain(clients_high.map(spawn_client));
+    let mut nodes = Vec::with_capacity(cluster_config.addresses.len());
+    for (i, address) in cluster_config.addresses.iter().enumerate() {
+        if i == args.self_id {
+            nodes.push(self_kv.clone());
+        } else {
+            let client_storage_actor = ClientStorage::open_with_timeout(
+                address,
+                args.communication_timeout,
+            )?;
+            nodes.push(storage_options.spawn(client_storage_actor));
+        }
+    }
 
     let coordinator = storage_options.spawn(Coordinator::new(
         cluster_config.replication,
+        cluster_config.min_correct_reads,
+        cluster_config.min_correct_writes,
         args.concurrency_level,
         nodes,
     ));

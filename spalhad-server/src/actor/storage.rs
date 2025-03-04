@@ -1,14 +1,13 @@
+use spalhad_actor::{ActorCall, ActorHandle, CallSuperset};
+use spalhad_spec::kv::Key;
+
 pub use client::ClientStorage;
 pub use dir::DirStorage;
 pub use memory::MemoryStorage;
-use spalhad_actor::{ActorCall, ActorHandle, CallSuperset};
-use spalhad_spec::kv::Key;
-pub use static_cluster::StaticClusterStorage;
 
 mod memory;
 mod dir;
 mod client;
-mod static_cluster;
 
 pub type StorageHandle = ActorHandle<StorageCall>;
 

@@ -1453,6 +1453,7 @@ dependencies = [
  "serde",
  "serde_json",
  "spalhad-spec",
+ "thiserror",
  "tokio",
 ]
 

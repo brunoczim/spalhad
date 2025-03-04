@@ -1,15 +1,16 @@
 use serde::{Deserialize, Serialize};
 
-pub use run_id::RunId;
+use crate::random_id::RandomId;
 
-pub mod run_id;
-pub mod node_id;
+pub type RunId = RandomId<16>;
 
 #[derive(
     Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,
 )]
 pub struct ClusterConfig {
     pub replication: usize,
+    pub min_correct_reads: usize,
+    pub min_correct_writes: usize,
     pub addresses: Vec<String>,
 }
 

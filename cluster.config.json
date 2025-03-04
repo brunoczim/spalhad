@@ -1,5 +1,7 @@
 {
   "replication": 3,
+  "min_correct_reads": 2,
+  "min_correct_writes": 2,
   "addresses": [
     "http://spalhad-node-0:5000",
     "http://spalhad-node-1:5000",

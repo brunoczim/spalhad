@@ -24,14 +24,22 @@ impl TrivialLoopActor for MemoryStorage {
         match call {
             StorageCall::Get(call) => {
                 let map = &self.map;
-                call.handle(
-                    |input| async move { Ok(map.get(&input.key).cloned()) },
-                )
+                call.handle(|input| async move {
+                    tracing::trace!(
+                        key = input.key.to_string(),
+                        "handling get memory storage request",
+                    );
+                    Ok(map.get(&input.key).cloned())
+                })
                 .await;
             },
 
             StorageCall::Put(call) => {
                 call.handle(|input| async {
+                    tracing::trace!(
+                        key = input.key.to_string(),
+                        "handling put memory storage request",
+                    );
                     Ok(self.map.insert(input.key, input.value).is_none())
                 })
                 .await;

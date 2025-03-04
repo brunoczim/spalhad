@@ -2,6 +2,7 @@ services:
   spalhad-node-0: &spalhad-node
     image: local/spalhad/server:latest
     pull_policy: never
+    container_name: ${SPALHAD_NODE_PREFIX:-spalhad-node}-0
     environment: &spalhad-node-env
       SPALHAD_KV_DIR: true
       SPALHAD_SELF_ID: 0
@@ -13,6 +14,7 @@ services:
 
   spalhad-node-1:
     <<: *spalhad-node
+    container_name: ${SPALHAD_NODE_PREFIX:-spalhad-node}-1
     environment:
       SPALHAD_KV_DIR: true
       SPALHAD_SELF_ID: 1
@@ -22,6 +24,7 @@ services:
 
   spalhad-node-2:
     <<: *spalhad-node
+    container_name: ${SPALHAD_NODE_PREFIX:-spalhad-node}-2
     environment:
       SPALHAD_KV_DIR: true
       SPALHAD_SELF_ID: 2
@@ -31,6 +34,7 @@ services:
 
   spalhad-node-3:
     <<: *spalhad-node
+    container_name: ${SPALHAD_NODE_PREFIX:-spalhad-node}-3
     environment:
       SPALHAD_KV_DIR: true
       SPALHAD_SELF_ID: 3

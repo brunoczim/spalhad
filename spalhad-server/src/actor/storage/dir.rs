@@ -29,6 +29,10 @@ impl TrivialLoopActor for DirStorage {
         match call {
             StorageCall::Get(call) => {
                 call.handle(|input| async move {
+                    tracing::trace!(
+                        key = input.key.to_string(),
+                        "handling get directory storage request",
+                    );
                     let path = dir_path.join(format!("{}.json", input.key));
                     let value = match fs::read_to_string(&path).await {
                         Ok(contents) => Some(serde_json::from_str(&contents)?),
@@ -42,6 +46,10 @@ impl TrivialLoopActor for DirStorage {
 
             StorageCall::Put(call) => {
                 call.handle(|input| async move {
+                    tracing::trace!(
+                        key = input.key.to_string(),
+                        "handling put directory storage request",
+                    );
                     let path = dir_path.join(format!("{}.json", input.key));
                     let contents = serde_json::to_vec(&input.value)?;
                     let (mut file, new) = loop {

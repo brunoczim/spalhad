@@ -1,6 +1,6 @@
 use axum::{Json, http::StatusCode};
 
-pub use spalhad_spec::kv::Error;
+pub use spalhad_spec::Error;
 
 use crate::actor::bouncer;
 

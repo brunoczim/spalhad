@@ -4,11 +4,6 @@ pub use key::Key;
 
 pub mod key;
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct Error {
-    pub trace: Vec<String>,
-}
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PutRequest<V> {
     pub value: V,
