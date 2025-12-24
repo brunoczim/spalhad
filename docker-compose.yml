@@ -11,6 +11,18 @@ services:
       - ./cluster.config.json:/spalhad/cluster.config.json
     ports:
       - "5500:5000"
+    healthcheck:
+      test:
+        - CMD
+        - bash
+        - -c
+        - |
+          { echo -e "GET /sync/active HTTP/1.0\r\n" >&3 ; \
+             cat <&3 | grep '{"is_active":true}' ; \
+          } 3<> /dev/tcp/localhost/5000
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   spalhad-node-1:
     <<: *spalhad-node
