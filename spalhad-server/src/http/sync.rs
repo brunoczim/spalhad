@@ -12,7 +12,7 @@ use spalhad_spec::cluster::{
     RunIdResponse,
 };
 
-use crate::actor::bouncer::{self};
+use crate::actor::bouncer::{self, Activated};
 
 use super::{
     App,
@@ -39,7 +39,7 @@ pub async fn activate(
         .send(bouncer::Activate { run_id: body.run_id })
         .await
         .map_err(error::when_not_bouncer(StatusCode::INTERNAL_SERVER_ERROR))
-        .map(|_| ActivateResponse { is_active: true })
+        .map(|Activated| ActivateResponse { is_active: true })
         .map(Json)
 }
 
@@ -48,6 +48,6 @@ pub async fn is_active(State(app): State<App>) -> HttpResult<IsActiveResponse> {
         .send(bouncer::IsActive)
         .await
         .map_err(error::make_response(StatusCode::INTERNAL_SERVER_ERROR))
-        .map(|_| IsActiveResponse { is_active: true })
+        .map(|is_active| IsActiveResponse { is_active })
         .map(Json)
 }
