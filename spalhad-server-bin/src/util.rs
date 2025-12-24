@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use anyhow::{Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow, bail};
 
 pub fn parse_duration(input: &str) -> Result<Duration> {
     let input = input.trim();
@@ -37,5 +37,5 @@ pub fn parse_duration(input: &str) -> Result<Duration> {
     } else {
         bail!("unknown unit")
     };
-    maybe_duration.ok_or_else(|| anyhow!("invalid duration scalar"))
+    maybe_duration.context("invalid duration scalar")
 }

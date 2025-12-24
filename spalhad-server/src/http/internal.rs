@@ -1,4 +1,4 @@
-use anyhow::anyhow;
+use anyhow::{Context, anyhow};
 use axum::{
     Json,
     Router,
@@ -29,7 +29,7 @@ async fn get_by_key(
         .send(storage::Get { key })
         .await
         .map_err(error::when_not_bouncer(StatusCode::INTERNAL_SERVER_ERROR))?
-        .ok_or_else(|| anyhow!("key not found"))
+        .context("key not found")
         .map_err(error::make_response(StatusCode::NOT_FOUND))
         .map(|value| GetResponse { value })
         .map(Json)
