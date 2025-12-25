@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::random_id::RandomId;
 
-pub type RunId = RandomId<16>;
+pub type RunId = RandomId<32>;
 
 #[derive(
     Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize,

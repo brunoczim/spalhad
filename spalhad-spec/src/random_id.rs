@@ -1,5 +1,7 @@
-use std::{fmt, marker::PhantomData, str::FromStr};
+use std::{cell::RefCell, fmt, marker::PhantomData, str::FromStr};
 
+use rand::{Rng, SeedableRng};
+use rand_chacha::ChaCha20Rng;
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de::Visitor};
 use thiserror::Error;
 
@@ -8,8 +10,7 @@ use crate::hex;
 #[derive(Debug, Error)]
 #[error("failed to generate random ID")]
 pub struct GenRandomIdError {
-    #[source]
-    inner: getrandom::Error,
+    _private: (),
 }
 
 #[derive(Debug, Error)]
@@ -25,9 +26,14 @@ impl<const N: usize> RandomId<{ N }> {
     pub const SIZE: usize = N;
 
     pub fn generate() -> Result<Self, GenRandomIdError> {
+        thread_local! {
+            static PRNG: RefCell<ChaCha20Rng> =
+                RefCell::new(SeedableRng::from_os_rng());
+        }
+
         let mut bytes = [0; N];
-        getrandom::fill(&mut bytes)
-            .map_err(|inner| GenRandomIdError { inner })?;
+        PRNG.with_borrow_mut(|rand| rand.fill(&mut bytes));
+
         Ok(Self { bytes })
     }
 
