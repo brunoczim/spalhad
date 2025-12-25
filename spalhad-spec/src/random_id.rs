@@ -8,12 +8,6 @@ use thiserror::Error;
 use crate::hex;
 
 #[derive(Debug, Error)]
-#[error("failed to generate random ID")]
-pub struct GenRandomIdError {
-    _private: (),
-}
-
-#[derive(Debug, Error)]
 #[error("string is not a valid hexadecimal key")]
 pub struct ParseRandomIdError;
 
@@ -25,7 +19,7 @@ pub struct RandomId<const N: usize> {
 impl<const N: usize> RandomId<{ N }> {
     pub const SIZE: usize = N;
 
-    pub fn generate() -> Result<Self, GenRandomIdError> {
+    pub fn generate() -> Self {
         thread_local! {
             static PRNG: RefCell<ChaCha20Rng> =
                 RefCell::new(SeedableRng::from_os_rng());
@@ -34,7 +28,7 @@ impl<const N: usize> RandomId<{ N }> {
         let mut bytes = [0; N];
         PRNG.with_borrow_mut(|rand| rand.fill(&mut bytes));
 
-        Ok(Self { bytes })
+        Self { bytes }
     }
 
     pub fn from_bytes(bytes: [u8; N]) -> Self {

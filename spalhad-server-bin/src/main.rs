@@ -101,7 +101,7 @@ async fn try_main(args: CliArgs) -> Result<()> {
         nodes,
     ));
 
-    let app = App::new(&storage_options, self_kv, coordinator)?;
+    let app = App::new(&storage_options, self_kv, coordinator);
 
     let self_run_id = app.self_run_id();
     let self_base_url = cluster_config.addresses[args.self_id].clone();

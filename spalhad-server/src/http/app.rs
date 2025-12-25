@@ -1,4 +1,3 @@
-use anyhow::Result;
 use spalhad_actor::ActorOptions;
 use spalhad_spec::cluster::RunId;
 
@@ -19,11 +18,11 @@ impl App {
         storage_options: &ActorOptions<'_>,
         storage: StorageHandle,
         coordinator: CoordinatorHandle,
-    ) -> Result<Self> {
-        let run_id = RunId::generate()?;
+    ) -> Self {
+        let run_id = RunId::generate();
         let bouncer_actor = Bouncer::open(run_id, storage, coordinator);
         let bouncer = storage_options.spawn(bouncer_actor);
-        Ok(Self { bouncer, run_id })
+        Self { bouncer, run_id }
     }
 
     pub fn bouncer(&self) -> &BouncerHandle {
