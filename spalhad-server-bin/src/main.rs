@@ -26,7 +26,7 @@ mod util;
 
 #[derive(Debug, Clone, Parser)]
 struct CliArgs {
-    #[clap(short, long, default_value = "0.0.0.0:5500")]
+    #[clap(short, long, default_value = "0.0.0.0:5000")]
     bind: String,
     #[clap(short, long, default_value_t = 10)]
     kv_channel_size: usize,

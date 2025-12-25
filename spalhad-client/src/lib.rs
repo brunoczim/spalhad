@@ -53,7 +53,7 @@ pub struct Client {
 
 impl Default for Client {
     fn default() -> Self {
-        Self::new("http://localhost:3000/kv")
+        Self::new("http://localhost:5000")
     }
 }
 
@@ -86,7 +86,7 @@ impl Client {
     }
 
     pub async fn run_id(&self) -> Result<RunId> {
-        let url = format!("{}/sync/run_id", self.base_url());
+        let url = format!("{}/spalhad/v1/sync/runid", self.base_url());
         let request = self.http_impl().get(url).build()?;
         let response = self.http_impl().execute(request).await?;
         if response.status() != StatusCode::OK {
@@ -98,7 +98,7 @@ impl Client {
     }
 
     pub async fn activate(&self, run_id: RunId) -> Result<ActivateResponse> {
-        let url = format!("{}/sync/activate", self.base_url());
+        let url = format!("{}/spalhad/v1/sync/activate", self.base_url());
         let body = ActivateRequest { run_id };
         let request = self.http_impl().post(url).json(&body).build()?;
         let response = self.http_impl().execute(request).await?;
@@ -111,7 +111,7 @@ impl Client {
     }
 
     pub async fn is_active(&self) -> Result<ActivateResponse> {
-        let url = format!("{}/sync/active", self.base_url(),);
+        let url = format!("{}/spalhad/v1/sync/active", self.base_url(),);
         let request = self.http_impl().get(url).build()?;
         let response = self.http_impl().execute(request).await?;
         if response.status() == StatusCode::OK {
@@ -142,7 +142,7 @@ impl Client {
     where
         V: DeserializeOwned,
     {
-        let url = format!("{}/kv/{}", self.base_url(), key);
+        let url = format!("{}/spalhad/v1/kv/{}", self.base_url(), key);
         let request = self.http_impl().get(url).build()?;
         let response = self.http_impl().execute(request).await?;
         if response.status() == StatusCode::NOT_FOUND {
@@ -160,7 +160,7 @@ impl Client {
     where
         V: Serialize,
     {
-        let url = format!("{}/kv/{}", self.base_url(), key);
+        let url = format!("{}/spalhad/v1/kv/{}", self.base_url(), key);
         let body = PutRequest { value };
         let request = self.http_impl().post(url).json(&body).build()?;
         let response = self.http_impl().execute(request).await?;
@@ -176,7 +176,7 @@ impl Client {
     where
         V: DeserializeOwned,
     {
-        let url = format!("{}/internal-kv/{}", self.base_url(), key);
+        let url = format!("{}/spalhad/v1/internal/kv/{}", self.base_url(), key);
         let request = self.http_impl().get(url).build()?;
         let response = self.http_impl().execute(request).await?;
         if response.status() == StatusCode::NOT_FOUND {
@@ -194,7 +194,7 @@ impl Client {
     where
         V: Serialize,
     {
-        let url = format!("{}/internal-kv/{}", self.base_url(), key);
+        let url = format!("{}/spalhad/v1/internal/kv/{}", self.base_url(), key);
         let body = PutRequest { value };
         let request = self.http_impl().post(url).json(&body).build()?;
         let response = self.http_impl().execute(request).await?;

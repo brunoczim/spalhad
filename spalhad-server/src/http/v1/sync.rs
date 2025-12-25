@@ -1,3 +1,4 @@
+use anyhow::anyhow;
 use axum::{
     Json,
     Router,
@@ -12,23 +13,34 @@ use spalhad_spec::cluster::{
     RunIdResponse,
 };
 
-use crate::actor::bouncer::{self, Activated};
-
-use super::{
-    App,
-    error::{self, HttpResult},
+use crate::{
+    actor::bouncer::{self, Activated},
+    http::{
+        App,
+        error::{self, HttpResult},
+    },
 };
 
 pub fn router() -> Router<App> {
     Router::new()
-        .route("/run_id", get(run_id))
+        .route("/runid", get(run_id))
         .route("/activate", post(activate))
         .route("/active", get(is_active))
 }
 
 pub async fn run_id(State(app): State<App>) -> HttpResult<RunIdResponse> {
-    let response = RunIdResponse { run_id: app.self_run_id() };
-    Ok(Json(response))
+    let is_active = app
+        .bouncer()
+        .send(bouncer::IsActive)
+        .await
+        .map_err(error::make_response(StatusCode::INTERNAL_SERVER_ERROR))?;
+    if is_active {
+        let response = RunIdResponse { run_id: app.self_run_id() };
+        Ok(Json(response))
+    } else {
+        Err(anyhow!("not active yet"))
+            .map_err(error::make_response(StatusCode::FORBIDDEN))
+    }
 }
 
 pub async fn activate(
