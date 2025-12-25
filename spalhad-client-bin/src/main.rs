@@ -1,4 +1,4 @@
-use std::backtrace::BacktraceStatus;
+use std::{backtrace::BacktraceStatus, process::exit};
 
 use anyhow::{Result, bail};
 use clap::{Parser, Subcommand};
@@ -68,5 +68,6 @@ async fn main() {
             eprintln!("Backtrace:");
             eprintln!("{}", error.backtrace());
         }
+        exit(1);
     }
 }

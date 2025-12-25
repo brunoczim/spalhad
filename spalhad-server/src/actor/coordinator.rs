@@ -59,9 +59,6 @@ impl TrivialLoopActor for Coordinator {
                     if let Ok(data) = output {
                         let count: &mut usize = reads.entry(data).or_default();
                         *count += 1;
-                        if *count >= self.min_correct_reads {
-                            break;
-                        }
                     }
                 }
 
